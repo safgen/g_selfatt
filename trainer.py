@@ -1,6 +1,7 @@
 import copy
 import datetime
 import os
+from tqdm import tqdm
 
 import torch
 import wandb
@@ -10,9 +11,13 @@ from torch.optim.lr_scheduler import LambdaLR
 import tester
 from g_selfatt import utils
 
+# torch.backends.cuda.matmul.allow_tf32 = True
+
 
 def train(model, dataloaders, config):
     criterion = torch.nn.CrossEntropyLoss()
+    # criterion.cuda()
+    # model.cuda()
     optimizer = get_optimizer(model.parameters(), config)
     lr_scheduler, scheduler_step_at = get_scheduler(optimizer, dataloaders, config)
 
@@ -28,7 +33,6 @@ def train(model, dataloaders, config):
 
     # Creates a GradScaler once at the beginning of training. Scaler handles mixed-precision on backward pass.
     scaler = GradScaler()
-
     # Save best performing weights
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
@@ -42,7 +46,7 @@ def train(model, dataloaders, config):
             print("Learning Rate: {}".format(param_group["lr"]))
         print("-" * 30)
         # log learning_rate of the epoch
-        wandb.log({"lr": optimizer.param_groups[0]["lr"]}, step=epoch + 1)
+        # wandb.log({"lr": optimizer.param_groups[0]["lr"]}, step=epoch + 1)
 
         # Each epoch consist of training and validation
         for phase in ["train", "validation"]:
@@ -51,54 +55,65 @@ def train(model, dataloaders, config):
                 model.train()
             else:
                 model.eval()
-
+            # print("model in train state")
             # Accumulate accuracy and loss
             running_loss = 0
             running_corrects = 0
             total = 0
             # iterate over data
-            for inputs, labels in dataloaders[phase]:
-                inputs = inputs.to(device)
-                labels = labels.to(device)
+            with tqdm(dataloaders[phase], unit='batch') as tepoch:
+                for inputs, labels in tepoch:
+                    tepoch.set_description(f"Epoch {epoch}")
+                    inputs = inputs.to(device)
+                    labels = labels.to(device)
 
-                optimizer.zero_grad()
+                    optimizer.zero_grad()
+                    
 
-                with torch.set_grad_enabled(train):
-                    if config.scheduler != "constant":
-
-                        outputs = model(inputs)
-                        loss = criterion(outputs, labels)
-                        if train:
-                            loss.backward()
-                            optimizer.step()
-
-                            # Update lr_scheduler
-                            if scheduler_step_at == "step":
-                                lr_scheduler.step()
-
-                    else:
-                        with autocast():  # Sets autocast in the main thread. It handles mixed precision in the forward pass.
+                    with torch.set_grad_enabled(train):
+                        if config.scheduler  == "xxconstant":
+                            # print("**" * 30)
                             outputs = model(inputs)
                             loss = criterion(outputs, labels)
+                            if train:
+                                # print("**" * 30)
+                                loss.backward()
+                                # optimizer.step()
+                                # print("step")
 
-                        if phase == "train":
-                            # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
-                            scaler.scale(loss).backward()
-                            # scaler.step() first unscales the gradients of the optimizer's assigned params.
-                            scaler.step(optimizer)
-                            # Updates the scale for next iteration.
-                            scaler.update()
+                                # Update lr_scheduler
+                                if scheduler_step_at == "step":
+                                    lr_scheduler.step()
+                                optimizer.step()
+                                print("step")
 
-                            # Update lr_scheduler
-                            if scheduler_step_at == "step":
-                                lr_scheduler.step()
 
-                    _, preds = torch.max(outputs, 1)
+                        else:
+                            with autocast(dtype=torch.bfloat16):  # Sets autocast in the main thread. It handles mixed precision in the forward pass.
+                                outputs = model(inputs)
+                                loss = criterion(outputs, labels)
+                                # loss.cuda()
 
-                # statistics
-                running_loss += loss.item() * inputs.size(0)
-                running_corrects += (preds == labels).sum().item()
-                total += labels.size(0)
+                            if phase == "train":
+                                # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
+                                scaler.scale(loss).backward()
+                                # scaler.step() first unscales the gradients of the optimizer's assigned params.
+                                scaler.step(optimizer)
+                                # Updates the scale for next iteration.
+                                scaler.update()
+
+                                # Update lr_scheduler
+                                if scheduler_step_at == "step":
+                                    lr_scheduler.step()
+
+                        _, preds = torch.max(outputs, 1)
+                        tepoch.set_postfix(loss=loss.item())
+
+
+                    # statistics
+                    running_loss += loss.item() * inputs.size(0)
+                    running_corrects += (preds == labels).sum().item()
+                    total += labels.size(0)
 
             # statistics of the epoch
             epoch_loss = running_loss / total
@@ -107,10 +122,10 @@ def train(model, dataloaders, config):
             print(datetime.datetime.now())
 
             # log statistics of the epoch
-            wandb.log(
-                {"accuracy" + "_" + phase: epoch_acc, "loss" + "_" + phase: epoch_loss},
-                step=epoch + 1,
-            )
+            # wandb.log(
+            #     {"accuracy" + "_" + phase: epoch_acc, "loss" + "_" + phase: epoch_loss},
+            #     step=epoch + 1,
+            # )
 
             # If better validation accuracy, replace best weights and compute the test performance
             if phase == "validation" and epoch_acc >= best_acc:
@@ -125,8 +140,8 @@ def train(model, dataloaders, config):
                     best_model_wts = copy.deepcopy(model.state_dict())
 
                     # Log best results so far and the weights of the model.
-                    wandb.run.summary["best_val_accuracy"] = best_acc
-                    wandb.run.summary["best_val_loss"] = best_loss
+                    # wandb.run.summary["best_val_accuracy"] = best_acc
+                    # wandb.run.summary["best_val_loss"] = best_loss
 
                     # Clean CUDA Memory
                     del inputs, outputs, labels
@@ -136,8 +151,8 @@ def train(model, dataloaders, config):
                         test_acc, _, _ = tester.test(model, dataloaders["test"], config)
                     else:
                         test_acc = best_acc
-                    wandb.run.summary["best_test_accuracy"] = test_acc
-                    wandb.log({"accuracy_test": test_acc}, step=epoch + 1)
+                    # wandb.run.summary["best_test_accuracy"] = test_acc
+                    # wandb.log({"accuracy_test": test_acc}, step=epoch + 1)
 
         # Update scheduler
         if scheduler_step_at == "epoch":
@@ -150,11 +165,11 @@ def train(model, dataloaders, config):
 
     # save model and log it
     torch.save(model.state_dict(), config.path)
-    torch.save(model.state_dict(), os.path.join(wandb.run.dir, "model.pt"))
-    torch.save(
-        model.module.state_dict(),
-        os.path.join(wandb.run.dir, config.path.split("/")[-1]),
-    )
+    # torch.save(model.state_dict(), os.path.join(wandb.run.dir, "model.pt"))
+    # torch.save(
+    #     model.module.state_dict(),
+    #     os.path.join(wandb.run.dir, config.path.split("/")[-1]),
+    # )
 
 
 def get_optimizer(model_parameters, config):
@@ -172,6 +187,12 @@ def get_optimizer(model_parameters, config):
         )
     elif config.optimizer == "Adam":
         optimizer = torch.optim.Adam(
+            model_parameters,
+            lr=config.lr,
+            weight_decay=config.weight_decay,
+        )
+    elif config.optimizer == "AdamW":
+        optimizer = torch.optim.AdamW(
             model_parameters,
             lr=config.lr,
             weight_decay=config.weight_decay,

@@ -12,6 +12,7 @@ class TransformerBlock(nn.Module):
         in_channels: int,
         out_channels: int,
         attention_layer: nn.Module,
+        #lifting,
         norm_type: str,
         activation_function: str,
         crop_size: int,
@@ -71,6 +72,7 @@ class TransformerBlock(nn.Module):
         }[activation_function]
 
         self.attention = nn.Sequential(
+            #lifting,    
             Norm(in_channels),
             ActivationFunction(),
             attention_layer,

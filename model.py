@@ -121,6 +121,6 @@ def get_model(config):
     # print number parameters
     no_params = num_params(model)
     print("Number of parameters:", no_params)
-    wandb.run.summary["no_params"] = no_params
+    # wandb.run.summary["no_params"] = no_params
 
     return model
