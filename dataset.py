@@ -8,7 +8,7 @@ from datasets import MNIST_rot, PCam
 
 
 def get_dataset(
-    config: ml_collections.ConfigDict, num_workers: int = 4, data_root: str = "./data"
+    config: ml_collections.ConfigDict, num_workers: int = 32, data_root: str = "./data"
 ) -> Dict[str, torch.utils.data.DataLoader]:
     """
     Create dataloaders for the chosen datasets

@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import LambdaLR
 import tester
 from g_selfatt import utils
 
-# torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cuda.matmul.allow_tf32 = True
 
 
 def train(model, dataloaders, config):
