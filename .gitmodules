@@ -1,0 +1,3 @@
+[submodule "mmrotate"]
+	path = mmrotate
+	url = https://github.com/open-mmlab/mmrotate.git
