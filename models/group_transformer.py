@@ -34,6 +34,7 @@ class NormType(str, enum.Enum):
 class Activation(str, enum.Enum):
     RELU = "ReLU"
     SWISH = "Swish"
+    GELU = "GELU"
 
 
 class GroupTransformer(nn.Module):
@@ -94,6 +95,7 @@ class GroupTransformer(nn.Module):
         self.Activation = {
             Activation.RELU: torch.nn.ReLU,
             Activation.SWISH: activations.Swish,
+            Activation.GELU: torch.nn.GELU,
         }[Activation(activation_function)]
 
         self.group = group

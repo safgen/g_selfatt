@@ -69,6 +69,7 @@ class TransformerBlock(nn.Module):
         ActivationFunction = {
             "ReLU": torch.nn.ReLU,
             "Swish": activations.Swish,
+            "GELU": torch.nn.GELU,
         }[activation_function]
 
         self.attention = nn.Sequential(
