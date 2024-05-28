@@ -19,8 +19,9 @@ def get_dataset(
         "mnist": torchvision.datasets.MNIST,
         "rotmnist": MNIST_rot,
         "pcam": PCam,
+        "imagenet" : torchvision.datasets.ImageFolder,
     }[config["dataset"].lower()]
-
+    print(dataset)
     if "cifar" in config.dataset.lower():
         data_mean = (0.4914, 0.4822, 0.4465)
         data_stddev = (0.2023, 0.1994, 0.2010)
@@ -40,6 +41,17 @@ def get_dataset(
                     torchvision.transforms.Normalize(data_mean, data_stddev),
                 ]
             )
+    elif "imagenet" in config.dataset.lower():
+        train_path = '/home/sheir/EasyImageNet/train'
+        val_path = '/home/sheir/EasyImageNet/val'
+        transform = torchvision.transforms.Compose(
+                [   
+                    torchvision.transforms.Resize((112,112)),
+                    torchvision.transforms.RandomHorizontalFlip(),
+                    torchvision.transforms.ToTensor()
+                ]
+        )
+        
     elif "mnist" in config.dataset.lower():
         data_mean = (0.1307,)
         data_stddev = (0.3081,)
@@ -61,12 +73,32 @@ def get_dataset(
     else:
         raise ValueError(f"Unkown preprocessing for datasets '{config.dataset}'")
 
+    if "imagenet" in config.dataset.lower():
+        train_data = torchvision.datasets.ImageFolder(train_path, transform=transform)
+        train_loader = torch.utils.data.DataLoader(
+            train_data,
+            batch_size=2,
+            shuffle=True,
+            num_workers=0
+        )
+        val_data = torchvision.datasets.ImageFolder(val_path, transform=transform)
+        val_loader = torch.utils.data.DataLoader(
+            val_data,
+            batch_size=2,
+            shuffle=False,
+            num_workers=0
+        )
+
+        dataloaders = {"train": train_loader, "test": val_loader}
+        return dataloaders
+    
     transform_test = torchvision.transforms.Compose(
         [
             torchvision.transforms.ToTensor(),
             torchvision.transforms.Normalize(data_mean, data_stddev),
         ]
     )
+
 
     training_set = dataset(root=data_root, train=True, download=True, transform=transform_train)
     test_set = dataset(root=data_root, train=False, download=True, transform=transform_test)
@@ -96,7 +128,9 @@ def get_dataset(
             num_workers=num_workers,
         )
         dataloaders["validation"] = val_loader
+    
     else:
         dataloaders["validation"] = test_loader
+
 
     return dataloaders

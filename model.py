@@ -16,6 +16,8 @@ def get_model(config):
         image_size = 28
     elif "pcam" in config.dataset.lower():
         image_size = 96
+    elif "imagenet" in config.dataset.lower():
+        image_size = 56
     else:
         image_size = 32
     # And the patch_size, if Local
@@ -76,6 +78,28 @@ def get_model(config):
                 crop_per_layer=0,
                 image_size=image_size,
                 num_classes=num_classes,
+                dropout_rate_after_maxpooling=0.3,
+                maxpool_after_last_block=False,
+                normalize_between_layers=True,
+                patch_size=patch_size,
+                num_heads=9,
+                norm_type=config.norm_type,
+                activation_function=config.activation_function,
+                attention_dropout_rate=config.dropout_att,
+                value_dropout_rate=config.dropout_values,
+                input_dropout_rate=0.2,
+                whitening_scale=config.whitening_scale,
+            )
+        elif config.dataset == "imagenet":
+            model = models.GroupTransformer(
+                group=group,
+                in_channels=in_channels,
+                num_channels=96,
+                block_sizes=[2, 2, 2],
+                expansion_per_block=[1, 2, 1],
+                crop_per_layer=0,
+                image_size=image_size,
+                num_classes=1000,
                 dropout_rate_after_maxpooling=0.3,
                 maxpool_after_last_block=False,
                 normalize_between_layers=True,
