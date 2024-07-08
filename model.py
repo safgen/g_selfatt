@@ -17,7 +17,7 @@ def get_model(config):
     elif "pcam" in config.dataset.lower():
         image_size = 96
     elif "imagenet" in config.dataset.lower():
-        image_size = 56
+        image_size = 224
     else:
         image_size = 32
     # And the patch_size, if Local
@@ -143,8 +143,8 @@ def get_model(config):
     torch.backends.cudnn.benchmark = True
 
     # print number parameters
-    no_params = num_params(model)
-    print("Number of parameters:", no_params)
+    # no_params = num_params(model)
+    # print("Number of parameters:", no_params)
     # wandb.run.summary["no_params"] = no_params
 
     return model

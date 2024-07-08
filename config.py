@@ -5,7 +5,7 @@ def get_config():
     default_config = dict(
         # --------------------------
         # General parameters
-        dataset="rotMNIST",
+        dataset="imagenet",
         # The dataset to be used, e.g., MNIST.
         model="p4sa",
         # The model to be used, e.g., p4sa.
@@ -13,7 +13,7 @@ def get_config():
         # The optimizer to be used, e.g., Adam.
         optimizer_momentum=0.99,
         # If optimizer == SGD, this specifies the momentum of the SGD.
-        device="cuda",
+        device= "cuda", #"cuda",
         # The device in which the model will be deployed, e.g., cuda.
         scheduler= "constant",
         # The lr scheduler to be used, e.g., multistep, constant.
@@ -22,7 +22,7 @@ def get_config():
         # The scheduler should be decreased.
         sched_decay_factor=5.0,
         # The factor with which the lr will be reduced, e.g., 5, 10.
-        lr=0.00005,
+        lr=0.00001,
         # The lr to be used, e.g., 0.001.
         norm_type="LayerNorm",
         # The normalization type to be used in the network, e.g., LayerNorm.
@@ -49,7 +49,7 @@ def get_config():
         comment="",
         # An additional comment to be added to the config.path parameter specifying where
         # the network parameters will be saved / loaded from.
-        pretrained=True,
+        pretrained=False,
         # Specifies if a pretrained model should be loaded.
         train=True,
         # Specifies if training should be performed.

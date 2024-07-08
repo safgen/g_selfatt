@@ -46,7 +46,7 @@ def get_dataset(
         val_path = '/home/sheir/EasyImageNet/val'
         transform = torchvision.transforms.Compose(
                 [   
-                    torchvision.transforms.Resize((112,112)),
+                    torchvision.transforms.Resize((224,224)),
                     torchvision.transforms.RandomHorizontalFlip(),
                     torchvision.transforms.ToTensor()
                 ]
@@ -77,14 +77,14 @@ def get_dataset(
         train_data = torchvision.datasets.ImageFolder(train_path, transform=transform)
         train_loader = torch.utils.data.DataLoader(
             train_data,
-            batch_size=2,
+            batch_size=config.batch_size,
             shuffle=True,
             num_workers=0
         )
         val_data = torchvision.datasets.ImageFolder(val_path, transform=transform)
         val_loader = torch.utils.data.DataLoader(
             val_data,
-            batch_size=2,
+            batch_size=config.batch_size,
             shuffle=False,
             num_workers=0
         )

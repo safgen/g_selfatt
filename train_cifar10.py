@@ -5,19 +5,38 @@ import trainer
 # import tester
 import torch
 import datetime
+from torchinfo import summary
+from timm import create_model, list_models
+
 torch.backends.cuda.matmul.allow_tf32 = True
 
 
 config = get_config()
 
-model = get_model(config)
+# model = get_model(config)
 
 
 # config["device"] = (
 #         "cuda:1" if (config.device == "cuda" and torch.cuda.is_available()) else "cpu"
 #     )
-model = get_model(config)
+model = get_model(config).to(config.device)
+# model = create_model('tiny_vit_5m_224', pretrained=False)
+# print(list_models("*tiny*"))
+# exit()
+print(torch.device(config.device))
+summary(model=model,
+        input_size=(config.batch_size, 3, 224, 224), # (batch_size, input_channels, img_width, img_height)
+        col_names=["input_size", "output_size", "num_params", "trainable",   #"params_percent",
+                "kernel_size",
+                "mult_adds"],
+        col_width=20,
+        row_settings=["var_names"],
+        depth = 6,
+        mode= 'train',
+        device=torch.device(config.device)
+        )
 
+exit()
 # Define transforms and create dataloaders
 dataloaders = dataset.get_dataset(config, num_workers=2)
 

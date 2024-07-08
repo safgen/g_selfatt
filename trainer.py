@@ -13,6 +13,11 @@ from g_selfatt import utils
 
 torch.backends.cuda.matmul.allow_tf32 = True
 
+def print_memory_usage():
+    print(f"Allocated: {torch.cuda.memory_allocated() / 1024**2:.2f} MB")
+    print(f"Cached: {torch.cuda.memory_reserved() / 1024**2:.2f} MB")
+
+
 
 def train(model, dataloaders, config):
     criterion = torch.nn.CrossEntropyLoss()
@@ -38,6 +43,7 @@ def train(model, dataloaders, config):
     best_acc = 0.0
     best_loss = 999
     # iterate over epochs
+    # print_memory_usage()
     for epoch in range(epochs):
         print("Epoch {}/{}".format(epoch + 1, epochs))
         print("-" * 30)
@@ -71,7 +77,7 @@ def train(model, dataloaders, config):
                     
 
                     with torch.set_grad_enabled(train):
-                        if config.scheduler  == "xxconstant":
+                        if config.scheduler  != "constant":
                             # print("**" * 30)
                             outputs = model(inputs)
                             loss = criterion(outputs, labels)
@@ -90,6 +96,7 @@ def train(model, dataloaders, config):
 
                         else:
                             with autocast(dtype=torch.bfloat16):  # Sets autocast in the main thread. It handles mixed precision in the forward pass.
+                                # optimizer.zero_grad()
                                 outputs = model(inputs)
                                 loss = criterion(outputs, labels)
                                 # loss.cuda()
@@ -101,6 +108,7 @@ def train(model, dataloaders, config):
                                 scaler.step(optimizer)
                                 # Updates the scale for next iteration.
                                 scaler.update()
+                                
 
                                 # Update lr_scheduler
                                 if scheduler_step_at == "step":
@@ -109,7 +117,8 @@ def train(model, dataloaders, config):
                         _, preds = torch.max(outputs, 1)
                         tepoch.set_postfix(loss=loss.item())
 
-
+                    # print_memory_usage()
+                    # torch.cuda.empty_cache()
                     # statistics
                     running_loss += loss.item() * inputs.size(0)
                     running_corrects += (preds == labels).sum().item()
