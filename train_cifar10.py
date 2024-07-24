@@ -20,12 +20,12 @@ config = get_config()
 #         "cuda:1" if (config.device == "cuda" and torch.cuda.is_available()) else "cpu"
 #     )
 model = get_model(config).to(config.device)
-# model = create_model('tiny_vit_5m_224', pretrained=False)
-# print(list_models("*tiny*"))
+# model = create_model('vit_tiny_patch16_224', pretrained=False)
+# print(list_models("*vit*"))
 # exit()
 print(torch.device(config.device))
 summary(model=model,
-        input_size=(config.batch_size, 3, 224, 224), # (batch_size, input_channels, img_width, img_height)
+        input_size=(config.batch_size, 3, 64, 64), # (batch_size, input_channels, img_width, img_height)
         col_names=["input_size", "output_size", "num_params", "trainable",   #"params_percent",
                 "kernel_size",
                 "mult_adds"],
@@ -36,7 +36,7 @@ summary(model=model,
         device=torch.device(config.device)
         )
 
-exit()
+# exit()
 # Define transforms and create dataloaders
 dataloaders = dataset.get_dataset(config, num_workers=2)
 

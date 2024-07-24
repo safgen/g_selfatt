@@ -4,6 +4,7 @@ from typing import Iterator, Optional, Sequence, Union
 
 import torch
 import torch.nn as nn
+from einops.layers.torch import Rearrange
 
 from g_selfatt.groups import Group
 from g_selfatt.nn import (
@@ -118,6 +119,15 @@ class GroupTransformer(nn.Module):
 
         self.input_dropout = nn.Dropout(input_dropout_rate)
 
+        patch_dim = 3 * 16 * 16
+        dim = 196
+        self.to_patch_embedding = nn.Sequential(
+            Rearrange('b c (h p1) (w p2) -> b (h w c) p1 p2', p1 = 16, p2 = 16),
+            # nn.LayerNorm(patch_dim),
+            # nn.Linear(patch_dim, dim),
+            # nn.LayerNorm(dim),
+        )
+
         # Lifting layer
         max_pos_embedding = patch_size if use_local_attention else image_size
         self.lifting_self_attention = LiftingSA(
@@ -177,10 +187,13 @@ class GroupTransformer(nn.Module):
     @autocast()  # required for mixed-precision when training on multiple GPUs.
     def forward(self, x):
         batch_size = x.shape[0]
+        # x = self.to_patch_embedding(x)
+        # print(x.shape)
         out = self.input_dropout(x)
         out = self.lifting_self_attention(out)
         out = self.lifting_normalization(out)
         out = self.Activation()(out)
+        # return torch.rand((1,1000))
         out = self.transformer(out)
         return out.sum(dim=(-2, -1)).max(-1).values.view(batch_size, self.num_classes)
 

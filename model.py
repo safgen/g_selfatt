@@ -17,7 +17,7 @@ def get_model(config):
     elif "pcam" in config.dataset.lower():
         image_size = 96
     elif "imagenet" in config.dataset.lower():
-        image_size = 224
+        image_size = 64
     else:
         image_size = 32
     # And the patch_size, if Local
@@ -99,7 +99,7 @@ def get_model(config):
                 expansion_per_block=[1, 2, 1],
                 crop_per_layer=0,
                 image_size=image_size,
-                num_classes=1000,
+                num_classes=200,
                 dropout_rate_after_maxpooling=0.3,
                 maxpool_after_last_block=False,
                 normalize_between_layers=True,

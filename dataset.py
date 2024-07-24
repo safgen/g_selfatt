@@ -42,11 +42,11 @@ def get_dataset(
                 ]
             )
     elif "imagenet" in config.dataset.lower():
-        train_path = '/home/sheir/EasyImageNet/train'
-        val_path = '/home/sheir/EasyImageNet/val'
+        train_path = '/home/sheir/tiny-imagenet-200/train'
+        val_path = '/home/sheir/tiny-imagenet-200/val'
         transform = torchvision.transforms.Compose(
                 [   
-                    torchvision.transforms.Resize((224,224)),
+                    torchvision.transforms.Resize((64,64)),
                     torchvision.transforms.RandomHorizontalFlip(),
                     torchvision.transforms.ToTensor()
                 ]
