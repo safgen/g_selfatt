@@ -17,7 +17,9 @@ def get_model(config):
     elif "pcam" in config.dataset.lower():
         image_size = 96
     elif "imagenet" in config.dataset.lower():
-        image_size = 64
+        image_size = 224
+        if "tiny" in config.dataset.lower():
+            image_size = 64
     else:
         image_size = 32
     # And the patch_size, if Local
@@ -90,7 +92,7 @@ def get_model(config):
                 input_dropout_rate=0.2,
                 whitening_scale=config.whitening_scale,
             )
-        elif config.dataset == "imagenet":
+        elif config.dataset == "imagenet" or config.dataset == "imagenet-tiny":
             model = models.GroupTransformer(
                 group=group,
                 in_channels=in_channels,

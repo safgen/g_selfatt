@@ -88,7 +88,6 @@ class LiftLocalSelfAttention(torch.nn.Module):
     ) -> torch.Tensor:
 
         b, c, h, w = x.shape
-
         # Compute attention scores.
         att_scores = self.compute_attention_scores(x)
 
@@ -163,7 +162,8 @@ class LiftLocalSelfAttention(torch.nn.Module):
         attention_scores = (
             attention_scores + attention_content_scores.expand_as(attention_scores)
         ) / sqrt_normalizer
-
+        # print (attention_scores.shape, attention_content_scores.shape)    
+        # attention_scores = attention_content_scores
         # Handle attention scores outside of image
         self.handle_values_outside_image(attention_scores, height, width)
 

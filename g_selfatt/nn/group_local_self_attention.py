@@ -146,43 +146,45 @@ class GroupLocalSelfAttention(nn.Module):
         )
 
         # Compute attention scores based on position
-        # -- batch, width, height, num_attention_heads, dim // 3
-        q_row = q[:, : self.pos_encoding_dim, :, :, :, :]
-        q_col = q[:, self.pos_encoding_dim : 2 * self.pos_encoding_dim, :, :, :, :]
+        # # -- batch, width, height, num_attention_heads, dim // 3
+        # q_row = q[:, : self.pos_encoding_dim, :, :, :, :]
+        # q_col = q[:, self.pos_encoding_dim : 2 * self.pos_encoding_dim, :, :, :, :]
         q_group = q[:, 2 * self.pos_encoding_dim :, :, :, :, :]
 
-        row_scores = torch.einsum(
-            "bchgij,vklc->bhvgijkl",
-            q_row,
-            self.row_embedding(self.row_indices.view(-1, 1, 1, 1)).view(
-                self.row_indices.shape + (-1,)
-            ),
-        )
-        col_scores = torch.einsum(
-            "bchgij,vklc->bhvgijkl",
-            q_col,
-            self.col_embedding(self.col_indices.view(-1, 1, 1, 1)).view(
-                self.col_indices.shape + (-1,)
-            ),
-        )
+        # row_scores = torch.einsum(
+        #     "bchgij,vklc->bhvgijkl",
+        #     q_row,
+        #     self.row_embedding(self.row_indices.view(-1, 1, 1, 1)).view(
+        #         self.row_indices.shape + (-1,)
+        #     ),
+        # )
+        # col_scores = torch.einsum(
+        #     "bchgij,vklc->bhvgijkl",
+        #     q_col,
+        #     self.col_embedding(self.col_indices.view(-1, 1, 1, 1)).view(
+        #         self.col_indices.shape + (-1,)
+        #     ),
+        # )
         g_scores = torch.einsum(
             "bchgij,vgmc->bhvgijm",
             q_group,
             self.group_embedding(self.g_indices.view(-1)).view(self.g_indices.shape + (-1,)),
         )
 
-        attention_scores = (
-            row_scores.unsqueeze(-3)
-            + col_scores.unsqueeze(-3)
-            + g_scores.unsqueeze(-1).unsqueeze(-1)
-        )
-
+        # attention_scores = (
+        #     row_scores.unsqueeze(-3)
+        #     + col_scores.unsqueeze(-3)
+        #     + g_scores.unsqueeze(-1).unsqueeze(-1)
+        # )
+        # print (g_scores.shape, row_scores.shape, col_scores.shape)
+        attention_scores = g_scores
+        
         # Combine attention scores
         attention_scores = (
             attention_scores + attention_content_scores.expand_as(attention_scores)
         ) / sqrt_normalizer
-
-        # Handle attention scores outside of image
+        print(attention_scores.shape, attention_content_scores.shape)
+        # Handle attention scores outside of ima2ge
         self.handle_values_outside_image(attention_scores, height, width)
 
         # Return attention scores

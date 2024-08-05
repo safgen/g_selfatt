@@ -77,21 +77,20 @@ def train(model, dataloaders, config):
                     
 
                     with torch.set_grad_enabled(train):
-                        if config.scheduler  != "constant":
+                        if None: #config.scheduler  != "constant":
                             # print("**" * 30)
                             outputs = model(inputs)
                             loss = criterion(outputs, labels)
                             if train:
                                 # print("**" * 30)
                                 loss.backward()
-                                # optimizer.step()
+                                optimizer.step()
                                 # print("step")
 
                                 # Update lr_scheduler
                                 if scheduler_step_at == "step":
                                     lr_scheduler.step()
-                                optimizer.step()
-                                print("step")
+                                    print("step")
 
 
                         else:
@@ -113,6 +112,7 @@ def train(model, dataloaders, config):
                                 # Update lr_scheduler
                                 if scheduler_step_at == "step":
                                     lr_scheduler.step()
+                                    # print("step")
 
                         _, preds = torch.max(outputs, 1)
                         tepoch.set_postfix(loss=loss.item())
@@ -233,8 +233,8 @@ def get_scheduler(optimizer, dataloaders, config):
         )
         step_at = "step"
     elif config.scheduler == "constant":
-        lr_scheduler = LambdaLR(optimizer, lr_lambda=lambda epoch: 1.0)
-        step_at = "step"
+        lr_scheduler = LambdaLR(optimizer, lr_lambda=lambda epoch: 1)
+        step_at = "epoch"
     else:
         raise ValueError(f"Unknown scheduler '{config.scheduler}'")
 

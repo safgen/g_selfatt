@@ -8,7 +8,7 @@ from datasets import MNIST_rot, PCam
 
 
 def get_dataset(
-    config: ml_collections.ConfigDict, num_workers: int = 32, data_root: str = "./data"
+    config: ml_collections.ConfigDict, num_workers: int = 0, data_root: str = "./data"
 ) -> Dict[str, torch.utils.data.DataLoader]:
     """
     Create dataloaders for the chosen datasets
@@ -20,6 +20,7 @@ def get_dataset(
         "rotmnist": MNIST_rot,
         "pcam": PCam,
         "imagenet" : torchvision.datasets.ImageFolder,
+        "imagenet-tiny" : torchvision.datasets.ImageFolder,
     }[config["dataset"].lower()]
     print(dataset)
     if "cifar" in config.dataset.lower():
@@ -42,13 +43,26 @@ def get_dataset(
                 ]
             )
     elif "imagenet" in config.dataset.lower():
-        train_path = '/home/sheir/tiny-imagenet-200/train'
-        val_path = '/home/sheir/tiny-imagenet-200/val'
-        transform = torchvision.transforms.Compose(
+        if "tiny" in config.dataset.lower():
+            train_path = '/home/sheir/tiny-imagenet-200/train'
+            val_path = '/home/sheir/tiny-imagenet-200/val'
+            transform = torchvision.transforms.Compose(
                 [   
                     torchvision.transforms.Resize((64,64)),
                     torchvision.transforms.RandomHorizontalFlip(),
-                    torchvision.transforms.ToTensor()
+                    torchvision.transforms.ToTensor(),
+                    torchvision.transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262])
+                ]
+            )
+        else:
+            train_path = '/home/sheir/EasyImageNet/train'
+            val_path = '/home/sheir/EasyImageNet/val'
+            transform = torchvision.transforms.Compose(
+                [   
+                    torchvision.transforms.Resize((224,224)),
+                    torchvision.transforms.RandomHorizontalFlip(),
+                    torchvision.transforms.ToTensor(),
+                    torchvision.transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262])
                 ]
         )
         
@@ -89,7 +103,7 @@ def get_dataset(
             num_workers=0
         )
 
-        dataloaders = {"train": train_loader, "test": val_loader}
+        dataloaders = {"train": train_loader, "validation": val_loader}
         return dataloaders
     
     transform_test = torchvision.transforms.Compose(

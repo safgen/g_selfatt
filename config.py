@@ -5,7 +5,7 @@ def get_config():
     default_config = dict(
         # --------------------------
         # General parameters
-        dataset="imagenet",
+        dataset="imagenet-tiny",
         # The dataset to be used, e.g., MNIST.
         model="p4sa",
         # The model to be used, e.g., p4sa.
@@ -15,14 +15,14 @@ def get_config():
         # If optimizer == SGD, this specifies the momentum of the SGD.
         device= "cuda", #"cuda",
         # The device in which the model will be deployed, e.g., cuda.
-        scheduler= "constant",
+        scheduler= "constant", #"linear_warmup_cosine",
         # The lr scheduler to be used, e.g., multistep, constant.
         sched_decay_steps=(400,),
         # If scheduler == multistep, this specifies the steps at which
         # The scheduler should be decreased.
         sched_decay_factor=5.0,
         # The factor with which the lr will be reduced, e.g., 5, 10.
-        lr=0.00001,
+        lr=0.0005,
         # The lr to be used, e.g., 0.001.
         norm_type="LayerNorm",
         # The normalization type to be used in the network, e.g., LayerNorm.
@@ -40,7 +40,7 @@ def get_config():
         # Specifies a factor with which the current variance initialization is weighted.
         weight_decay=1e-5,
         # Specifies a L2 norm over the magnitude of the weigths in the network, e.g., 1e-4.
-        batch_size=14,
+        batch_size=28,
         # The batch size to be used, e.g., 64.
         epochs=50,
         # The number of epochs to perform training, e.g., 200.
