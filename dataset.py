@@ -75,21 +75,22 @@ def get_dataset(
 
     if "imagenet" in config.dataset.lower():
         train_data = torchvision.datasets.ImageFolder(train_path, transform=transform)
+        # print(train_data.class_to_idx)
         train_loader = torch.utils.data.DataLoader(
             train_data,
             batch_size=config.batch_size,
             shuffle=True,
-            num_workers=0
+            num_workers=8
         )
         val_data = torchvision.datasets.ImageFolder(val_path, transform=transform)
         val_loader = torch.utils.data.DataLoader(
             val_data,
             batch_size=config.batch_size,
             shuffle=False,
-            num_workers=0
+            num_workers=8
         )
 
-        dataloaders = {"train": train_loader, "test": val_loader}
+        dataloaders = {"train": train_loader, "validation": val_loader}
         return dataloaders
     
     transform_test = torchvision.transforms.Compose(
