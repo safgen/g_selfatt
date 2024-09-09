@@ -4,6 +4,8 @@ import ml_collections
 import torch
 import torchvision
 
+from torch.utils.data import Subset
+
 from datasets import MNIST_rot, PCam
 
 
@@ -49,7 +51,7 @@ def get_dataset(
             transform = torchvision.transforms.Compose(
                 [   
                     torchvision.transforms.Resize((64,64)),
-                    torchvision.transforms.RandomHorizontalFlip(),
+                    # torchvision.transforms.RandomHorizontalFlip(),
                     torchvision.transforms.ToTensor(),
                     torchvision.transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262])
                 ]
@@ -60,7 +62,7 @@ def get_dataset(
             transform = torchvision.transforms.Compose(
                 [   
                     torchvision.transforms.Resize((224,224)),
-                    torchvision.transforms.RandomHorizontalFlip(),
+                    # torchvision.transforms.RandomHorizontalFlip(),
                     torchvision.transforms.ToTensor(),
                     torchvision.transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262])
                 ]
@@ -89,6 +91,13 @@ def get_dataset(
 
     if "imagenet" in config.dataset.lower():
         train_data = torchvision.datasets.ImageFolder(train_path, transform=transform)
+        # print(train_data.class_to_idx)
+        # print(train_data.imgs)
+        mask = torch.tensor(train_data.targets) < 3
+        train_indices = mask.nonzero().reshape(-1)
+        # print(train_data.class_to_idx)
+        train_data = Subset(train_data, train_indices)
+        
         train_loader = torch.utils.data.DataLoader(
             train_data,
             batch_size=config.batch_size,
@@ -96,12 +105,19 @@ def get_dataset(
             num_workers=0
         )
         val_data = torchvision.datasets.ImageFolder(val_path, transform=transform)
+        mask = torch.tensor(val_data.targets) < 3
+        val_indices = mask.nonzero().reshape(-1)
+        # print(val_data.class_to_idx)
+        val_data = Subset(val_data, val_indices)
+        
+
         val_loader = torch.utils.data.DataLoader(
             val_data,
             batch_size=config.batch_size,
             shuffle=False,
             num_workers=0
         )
+
 
         dataloaders = {"train": train_loader, "validation": val_loader}
         return dataloaders

@@ -10,6 +10,10 @@ def get_model(config):
     # Define number of channels
     in_channels = 1 if "mnist" in config.dataset.lower() else 3
     num_classes = 2 if "pcam" in config.dataset.lower() else 10
+    if "imagenet" in config.dataset.lower():
+        num_classes = 3 #1000
+        if "tiny" in config.dataset.lower():
+            num_classes = 200
 
     # Define the input size
     if "mnist" in config.dataset.lower():
@@ -101,7 +105,7 @@ def get_model(config):
                 expansion_per_block=[1, 2, 1],
                 crop_per_layer=0,
                 image_size=image_size,
-                num_classes=200,
+                num_classes=num_classes,
                 dropout_rate_after_maxpooling=0.3,
                 maxpool_after_last_block=False,
                 normalize_between_layers=True,

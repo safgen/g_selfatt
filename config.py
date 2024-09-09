@@ -5,7 +5,7 @@ def get_config():
     default_config = dict(
         # --------------------------
         # General parameters
-        dataset="imagenet-tiny",
+        dataset="imagenet",
         # The dataset to be used, e.g., MNIST.
         model="p4sa",
         # The model to be used, e.g., p4sa.
@@ -40,7 +40,7 @@ def get_config():
         # Specifies a factor with which the current variance initialization is weighted.
         weight_decay=1e-5,
         # Specifies a L2 norm over the magnitude of the weigths in the network, e.g., 1e-4.
-        batch_size=28,
+        batch_size=4,
         # The batch size to be used, e.g., 64.
         epochs=50,
         # The number of epochs to perform training, e.g., 200.
