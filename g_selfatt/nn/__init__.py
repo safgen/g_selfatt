@@ -7,3 +7,4 @@ from .lift_local_self_attention import LiftLocalSelfAttention
 from .lift_self_attention import LiftSelfAttention
 from .rd_self_attention import RdSelfAttention
 from .transformer_block import TransformerBlock
+from .conv_embed import ConvEmbed
