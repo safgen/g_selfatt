@@ -100,7 +100,7 @@ def get_model(config):
             model = models.GroupTransformer(
                 group=group,
                 in_channels=in_channels,
-                num_channels=96,
+                num_channels=64,
                 block_sizes=[2, 2, 2],
                 expansion_per_block=[1, 2, 1],
                 crop_per_layer=0,
@@ -110,7 +110,7 @@ def get_model(config):
                 maxpool_after_last_block=False,
                 normalize_between_layers=True,
                 patch_size=patch_size,
-                num_heads=9,
+                num_heads=12,
                 norm_type=config.norm_type,
                 activation_function=config.activation_function,
                 attention_dropout_rate=config.dropout_att,

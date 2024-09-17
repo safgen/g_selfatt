@@ -16,6 +16,8 @@ from g_selfatt.nn import (
     LiftSelfAttention,
     TransformerBlock,
     activations,
+    LiftConvAttention,
+    GroupConvAttention
 )
 
 # mixed precision
@@ -82,8 +84,8 @@ class GroupTransformer(nn.Module):
             )
 
         if use_local_attention:
-            LiftingSA = LiftLocalSelfAttention
-            self.GroupSA = GroupLocalSelfAttention
+            LiftingSA = LiftConvAttention #LiftLocalSelfAttention 
+            self.GroupSA = GroupConvAttention #GroupLocalSelfAttention
         else:
             LiftingSA = LiftSelfAttention
             self.GroupSA = GroupSelfAttention
