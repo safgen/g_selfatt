@@ -1,7 +1,7 @@
 
 import torch.nn as nn
 from einops import rearrange
-from utils import _ntuple
+from g_selfatt.utils import _ntuple
 
 to_2tuple = _ntuple(2)
 

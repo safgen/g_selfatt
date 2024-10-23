@@ -10,7 +10,7 @@ from datasets import MNIST_rot, PCam
 
 
 def get_dataset(
-    config: ml_collections.ConfigDict, num_workers: int = 0, data_root: str = "./data"
+    config: ml_collections.ConfigDict, num_workers: int = 8, data_root: str = "./data"
 ) -> Dict[str, torch.utils.data.DataLoader]:
     """
     Create dataloaders for the chosen datasets
@@ -105,10 +105,10 @@ def get_dataset(
             num_workers=0
         )
         val_data = torchvision.datasets.ImageFolder(val_path, transform=transform)
-        mask = torch.tensor(val_data.targets) < 3
-        val_indices = mask.nonzero().reshape(-1)
-        # print(val_data.class_to_idx)
-        val_data = Subset(val_data, val_indices)
+        # mask = torch.tensor(val_data.targets) < 3
+        # val_indices = mask.nonzero().reshape(-1)
+        # # print(val_data.class_to_idx)
+        # val_data = Subset(val_data, val_indices)
         
 
         val_loader = torch.utils.data.DataLoader(
@@ -139,6 +139,8 @@ def get_dataset(
         shuffle=True,
         num_workers=num_workers,
     )
+    # subset_indices = torch.randperm(len(test_set))[:5000]
+    # test_set = Subset(test_set, subset_indices)
     test_loader = torch.utils.data.DataLoader(
         test_set,
         batch_size=config.batch_size,

@@ -17,6 +17,7 @@ from einops import rearrange
 
 class ConvAttention(nn.Module):
     def __init__(self,
+                 group,
                  dim_in,
                  dim_out,
                  num_heads,
@@ -37,6 +38,7 @@ class ConvAttention(nn.Module):
         self.stride_q = stride_q
         self.dim = dim_out
         self.num_heads = num_heads
+        self.group = group
         # head_dim = self.qkv_dim // num_heads
         self.scale = dim_out ** -0.5
         self.with_cls_token = with_cls_token
@@ -57,11 +59,14 @@ class ConvAttention(nn.Module):
         self.proj_q = nn.Conv2d(dim_in, dim_out, kernel_size=1)
         self.proj_k = nn.Conv2d(dim_in, dim_out, kernel_size=1)
         self.proj_v = nn.Conv2d(dim_in, dim_out, kernel_size=1)
-        self.proj_out = nn.Conv3d(dim_out, dim_out, kernel_size=1)
+        self.proj_out = nn.Conv3d(dim_out, dim_out // num_heads, kernel_size=1)
 
         self.attn_drop = nn.Dropout(attn_drop)
         # self.proj = nn.Linear(dim_out, dim_out)
-        self.proj_drop = nn.Dropout(proj_drop)
+        if proj_drop > 0:
+            self.proj_drop = nn.Dropout(proj_drop)
+        else:
+            self.proj_drop = None
 
     def _build_projection(self,
                           dim_in,
@@ -105,7 +110,7 @@ class ConvAttention(nn.Module):
         if self.with_cls_token:
             cls_token, x = torch.split(x, [1, h*w], 1)
 
-        x = rearrange(x, 'b (h w) c -> b c h w', h=h, w=w)
+        # x = rearrange(x, 'b (h w) c -> b c h w', h=h, w=w)
 
         if self.conv_proj_q is not None:
             q = self.conv_proj_q(x)
@@ -136,12 +141,17 @@ class ConvAttention(nn.Module):
             or self.conv_proj_v is not None
         ):
             q, k, v = self.forward_conv(x, h, w)
+        #     q = rearrange(q, 'b (h c) x y -> b c h x y', h=self.num_heads)
+        #     k = rearrange(k, 'b (h c) x y -> b c h x y', h=self.num_heads)
+        #     v = rearrange(v, 'b (h c) x y -> b c h x y', h=self.num_heads)
 
+
+        # else: 
         q = rearrange(self.proj_q(q), 'b (h c) x y -> b c h x y', h=self.num_heads)
         k = rearrange(self.proj_k(k), 'b (h c) x y -> b c h x y', h=self.num_heads)
         v = rearrange(self.proj_v(v), 'b (h c) x y -> b c h x y', h=self.num_heads)
 
-        attn_score = (torch.einsum('bchij,bchkl->bhijkl', [q, k])).unsqueeze(2).repeat(1,1,4,1,1,1,1) * self.scale      # TODO: replace the hardcoded  4 in repeat to the num of group elements
+        attn_score = (torch.einsum('bchij,bchkl->bhijkl', [q, k])).unsqueeze(2).repeat(1,1,self.group.num_elements,1,1,1,1) * self.scale      # TODO: replace the hardcoded  4 in repeat to the num of group elements
         shape = attn_score.shape
         attn = F.softmax(attn_score.view(*shape[:-2], -1), dim=-1)
         attn = self.attn_drop(attn.view(shape))
@@ -150,8 +160,8 @@ class ConvAttention(nn.Module):
         x = rearrange(x, 'b c h g i j -> b (c h) g i j')
 
         x = self.proj_out(x)
-        x = self.proj_drop(x)
-
+        if self.proj_drop is not None:
+            x = self.proj_drop(x)
         return x
 
 class LiftConvAttention(torch.nn.Module):
@@ -163,8 +173,9 @@ class LiftConvAttention(torch.nn.Module):
         out_channels: int,
         num_heads: int,
         max_pos_embedding: int,
-        patch_size: int,
+        #patch_size: int,
         attention_dropout_rate: float,
+        conv_embed_layer: bool = False,
     ):
         """
         Creates a lifting self-attention layer with global receptive fields.
@@ -187,12 +198,18 @@ class LiftConvAttention(torch.nn.Module):
         self.group = group
         self.num_heads = num_heads
         self.in_channels = in_channels
-        # self.mid_channels = mid_channels
+        self.mid_channels = mid_channels
         # self.out_channels = out_channels
         self.dim_out = out_channels * self.num_heads
+        self.conv_embed_layer = conv_embed_layer
 
         # Define embeddings.
-        self.conv_embed = ConvEmbed()
+        if self.conv_embed_layer:
+            self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=self.mid_channels)
+            self.attention = ConvAttention(group=self.group, dim_in=self.mid_channels, dim_out=self.dim_out, num_heads=self.num_heads, attn_drop=attention_dropout_rate)
+        else:
+            self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=out_channels, patch_size=3)
+            self.attention = ConvAttention(group=self.group, dim_in=self.in_channels, dim_out=self.dim_out, num_heads=self.num_heads, attn_drop=attention_dropout_rate)
         # self.row_embedding = torch.nn.Sequential(
         #     torch.nn.Conv2d(in_channels=1, out_channels=16, kernel_size=1),
         #     g_selfatt.nn.LayerNorm(num_channels=16),
@@ -218,18 +235,19 @@ class LiftConvAttention(torch.nn.Module):
         # # Define dropout.
         # self.dropout_attention = torch.nn.Dropout(attention_dropout_rate)
 
-        self.attention = ConvAttention(dim_in=self.in_channels, dim_out=self.dim_out, num_heads=self.num_heads)
+        # self.attention = ConvAttention(dim_in=self.mid_channels, dim_out=self.dim_out, num_heads=self.num_heads, attn_drop=attention_dropout_rate)
 
     def forward(
         self,
         x: torch.Tensor,
     ) -> torch.Tensor:
 
+        # if self.conv_embed_layer:
         x = self.conv_embed(x)
 
         b, c, w, h = x.shape
 
-        out = self.attention(x, h, w)
+        out = x.unsqueeze(2).repeat(1,1,self.group.num_elements,1,1) #self.attention(x, h, w)
 
         # # Compute attention scores.
         # att_scores = self.compute_attention_scores(x)

@@ -16,6 +16,7 @@ from einops import rearrange
 
 class ConvAttention3D(nn.Module):
     def __init__(self,
+                 group,
                  dim_in,
                  dim_out,
                  num_heads,
@@ -29,6 +30,7 @@ class ConvAttention3D(nn.Module):
                  padding_kv=1,
                  padding_q=1,
                  with_cls_token=False,
+                 max_pos_embedding=0,
                  **kwargs
                  ):
         super().__init__()
@@ -36,9 +38,12 @@ class ConvAttention3D(nn.Module):
         self.stride_q = stride_q
         self.dim = dim_out
         self.num_heads = num_heads
+        self.group = group
         # head_dim = self.qkv_dim // num_heads
         self.scale = dim_out ** -0.5
         self.with_cls_token = with_cls_token
+
+        self.group_embedding = nn.Embedding(self.group.num_elements, self.dim//self.num_heads)
 
         self.conv_proj_q = self._build_projection(
             dim_in, dim_out, kernel_size, padding_q,
@@ -56,11 +61,16 @@ class ConvAttention3D(nn.Module):
         self.proj_q = nn.Conv3d(dim_in, dim_out, kernel_size=1)
         self.proj_k = nn.Conv3d(dim_in, dim_out, kernel_size=1)
         self.proj_v = nn.Conv3d(dim_in, dim_out, kernel_size=1)
-        self.proj_out = nn.Conv3d(dim_out, dim_out, kernel_size=1)
+        self.proj_out = nn.Conv3d(dim_out, dim_out // num_heads, kernel_size=1)
 
         self.attn_drop = nn.Dropout(attn_drop)
         # self.proj = nn.Linear(dim_out, dim_out)
-        self.proj_drop = nn.Dropout(proj_drop)
+        if proj_drop > 0:
+            self.proj_drop = nn.Dropout(proj_drop)
+        else:
+            self.proj_drop = None
+
+        self.initialize_indices(max_pos_embedding)
 
     def _build_projection(self,
                           dim_in,
@@ -104,7 +114,7 @@ class ConvAttention3D(nn.Module):
         if self.with_cls_token:
             cls_token, x = torch.split(x, [1, h*w], 1)
 
-        x = rearrange(x, 'b (h w) c -> b c h w', h=h, w=w)
+        # x = rearrange(x, 'b (h w) c -> b c h w', h=h, w=w)
 
         if self.conv_proj_q is not None:
             q = self.conv_proj_q(x)
@@ -135,23 +145,84 @@ class ConvAttention3D(nn.Module):
             or self.conv_proj_v is not None
         ):
             q, k, v = self.forward_conv(x, h, w)
+            # q = rearrange(q, 'b (h c) g x y -> b c h g x y', h=self.num_heads)
+            # k = rearrange(k, 'b (h c) g x y -> b c h g x y', h=self.num_heads)
+            # v = rearrange(v, 'b (h c) g x y -> b c h g x y', h=self.num_heads)
+        
+        # else:
 
         q = rearrange(self.proj_q(q), 'b (h c) g x y -> b c h g x y', h=self.num_heads)
         k = rearrange(self.proj_k(k), 'b (h c) g x y -> b c h g x y', h=self.num_heads)
         v = rearrange(self.proj_v(v), 'b (h c) g x y -> b c h g x y', h=self.num_heads)
+        q_group = q
+        g_embedding = self.group_embedding(self.g_indices.view(-1)).view(self.g_indices.shape + (-1,))
+        # print(q_group.shape, g_embedding.shape)
+        g_scores = torch.einsum(
+            "bchgij,vgmc->bhvgijm",
+            q_group,
+            g_embedding,
+        )
+        # print(g_scores.shape)
+        attn_c_score = (torch.einsum('bchgij,bchmkl->bhgijmkl', q, k)).unsqueeze(2) #.repeat(1,1,self.group.num_elements,1,1,1,1,1,1) * self.scale
+        # print(g_scores.shape, attn_c_score.shape)
+        attn_score = g_scores.unsqueeze(-1).unsqueeze(-1).repeat(1,1,1,1,1,1,1, attn_c_score.shape[-2], attn_c_score.shape[-1])
+        # print(attn_score.shape, attn_c_score.shape)
 
-        attn_score = (torch.einsum('bchgij,bchmkl->bhgijmkl', [q, k])).unsqueeze(2).repeat(1,1,4,1,1,1,1) * self.scale      # TODO: replace the hardcoded  4 in repeat to the num of group elements
+        attn_score = (
+            attn_score + attn_c_score.expand_as(attn_score)
+        ) * self.scale
+
         shape = attn_score.shape
         attn = F.softmax(attn_score.view(*shape[:-2], -1), dim=-1)
         attn = self.attn_drop(attn.view(shape))
 
-        x = torch.einsum('bhvgijmkl,bchmkl->bchvij', [attn, v])
+        x = torch.einsum('bhvgijmkl,bchmkl->bchvij', attn, v)
         x = rearrange(x, 'b c h g i j -> b (c h) g i j')
 
         x = self.proj_out(x)
-        x = self.proj_drop(x)
+        if self.proj_drop is not None:
+            x = self.proj_drop(x)
 
         return x
+    
+    def initialize_indices(
+        self,
+        max_pos_embedding: int,
+    ):
+        """
+        Creates a set of acted relative positions for each of the elements in the group.
+        """
+
+        #  Create 2D relative indices
+        indices_1d = normalize_tensor_one_minone(torch.arange(2 * max_pos_embedding - 1))
+        indices = torch.stack(
+            [
+                indices_1d.view(-1, 1).repeat(1, 2 * max_pos_embedding - 1),
+                indices_1d.view(1, -1).repeat(2 * max_pos_embedding - 1, 1),
+            ],
+            dim=0,
+        )
+        # Group indices
+        indices_g = self.group.relative_positions
+
+        # Get acted versions of the positional encoding
+        row_indices = []
+        col_indices = []
+        g_indices = []
+
+        for i, h in enumerate(self.group.elements):
+            Lh_indices_Rd, Lh_indices_g = self.group.left_action_on_G(h, indices, indices_g)
+            # patches = encoding_functions.extract_patches(Lh_indices_Rd)
+            # row_indices_windows = patches[..., 0]
+            # col_indices_windows = patches[..., 1]
+            # row_indices.append(row_indices_windows)
+            # col_indices.append(col_indices_windows)
+            g_indices.append(Lh_indices_g)
+
+        # self.register_buffer("row_indices", torch.stack(row_indices, dim=0))
+        # self.register_buffer("col_indices", torch.stack(col_indices, dim=0))
+        self.register_buffer("g_indices", torch.stack(g_indices, dim=0))
+
 
 
 class GroupConvAttention(nn.Module):
@@ -220,7 +291,8 @@ class GroupConvAttention(nn.Module):
 
         # # Define dropout
         # self.dropout_attention = nn.Dropout(attention_dropout_rate)
-        self.attention = ConvAttention3D(dim_in=self.in_channels, dim_out=self.dim_out, num_heads=self.num_heads)
+        self.attention = ConvAttention3D(group=self.group, dim_in=self.in_channels, dim_out=self.dim_out, num_heads=self.num_heads, 
+                                         attn_drop=attention_dropout_rate, max_pos_embedding=max_pos_embedding)
 
 
     def forward(
@@ -337,13 +409,13 @@ class GroupConvAttention(nn.Module):
 
     #     for i, h in enumerate(self.group.elements):
     #         Lh_indices_Rd, Lh_indices_g = self.group.left_action_on_G(h, indices, indices_g)
-    #         patches = encoding_functions.extract_patches(Lh_indices_Rd)
-    #         row_indices_windows = patches[..., 0]
-    #         col_indices_windows = patches[..., 1]
-    #         row_indices.append(row_indices_windows)
-    #         col_indices.append(col_indices_windows)
+    #         # patches = encoding_functions.extract_patches(Lh_indices_Rd)
+    #         # row_indices_windows = patches[..., 0]
+    #         # col_indices_windows = patches[..., 1]
+    #         # row_indices.append(row_indices_windows)
+    #         # col_indices.append(col_indices_windows)
     #         g_indices.append(Lh_indices_g)
 
-    #     self.register_buffer("row_indices", torch.stack(row_indices, dim=0))
-    #     self.register_buffer("col_indices", torch.stack(col_indices, dim=0))
+    #     # self.register_buffer("row_indices", torch.stack(row_indices, dim=0))
+    #     # self.register_buffer("col_indices", torch.stack(col_indices, dim=0))
     #     self.register_buffer("g_indices", torch.stack(g_indices, dim=0))

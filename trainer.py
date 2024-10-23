@@ -10,6 +10,10 @@ from torch.optim.lr_scheduler import LambdaLR
 
 import tester
 from g_selfatt import utils
+import gc
+from torch.utils.tensorboard import SummaryWriter
+
+# writer = SummaryWriter()
 
 torch.backends.cuda.matmul.allow_tf32 = True
 
@@ -20,6 +24,7 @@ def print_memory_usage():
 
 
 def train(model, dataloaders, config):
+    writer = SummaryWriter(comment=config.model)
     criterion = torch.nn.CrossEntropyLoss()
     # criterion.cuda()
     # model.cuda()
@@ -56,112 +61,122 @@ def train(model, dataloaders, config):
 
         # Each epoch consist of training and validation
         for phase in ["train", "validation"]:
-            train = phase == "train"
-            if train:
-                model.train()
-            else:
-                model.eval()
-            # print("model in train state")
-            # Accumulate accuracy and loss
-            running_loss = 0
-            running_corrects = 0
-            total = 0
-            # iterate over data
-            with tqdm(dataloaders[phase], unit='batch') as tepoch:
-                for inputs, labels in tepoch:
-                    tepoch.set_description(f"Epoch {epoch}")
-                    inputs = inputs.to(device)
-                    labels = labels.to(device)
+            if  phase == "train" or (epoch+1)%20 == 0:
+                train = phase == "train"
+                if train:
+                    model.train()
+                else:
+                    model.eval()
+                # print("model in train state")
+                # Accumulate accuracy and loss
+                running_loss = 0
+                running_corrects = 0
+                total = 0
+                # iterate over data
+                with tqdm(dataloaders[phase], unit='batch') as tepoch:
+                    for inputs, labels in tepoch:
+                        tepoch.set_description(f"Epoch {epoch}")
+                        inputs = inputs.to(device)
+                        labels = labels.to(device)
 
-                    optimizer.zero_grad()
-                    
+                        optimizer.zero_grad()
+                        
 
-                    with torch.set_grad_enabled(train):
-                        if None: #config.scheduler  != "constant":
-                            # print("**" * 30)
-                            outputs = model(inputs)
-                            loss = criterion(outputs, labels)
-                            if train:
+                        with torch.set_grad_enabled(train):
+                            if False: #config.scheduler  != "constant":
                                 # print("**" * 30)
-                                loss.backward()
-                                optimizer.step()
-                                # print("step")
-
-                                # Update lr_scheduler
-                                if scheduler_step_at == "step":
-                                    lr_scheduler.step()
-                                    print("step")
-
-
-                        else:
-                            with autocast(dtype=torch.bfloat16):  # Sets autocast in the main thread. It handles mixed precision in the forward pass.
-                                # optimizer.zero_grad()
                                 outputs = model(inputs)
                                 loss = criterion(outputs, labels)
-                                # loss.cuda()
-
-                            if phase == "train":
-                                # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
-                                scaler.scale(loss).backward()
-                                # scaler.step() first unscales the gradients of the optimizer's assigned params.
-                                scaler.step(optimizer)
-                                # Updates the scale for next iteration.
-                                scaler.update()
-                                
-
-                                # Update lr_scheduler
-                                if scheduler_step_at == "step":
-                                    lr_scheduler.step()
+                                if train:
+                                    # print("**" * 30)
+                                    loss.backward()
+                                    optimizer.step()
                                     # print("step")
 
-                        _, preds = torch.max(outputs, 1)
-                        tepoch.set_postfix(loss=loss.item())
+                                    # Update lr_scheduler
+                                    if scheduler_step_at == "step":
+                                        lr_scheduler.step()
+                                        print("step")
 
-                    # print_memory_usage()
-                    # torch.cuda.empty_cache()
-                    # statistics
-                    running_loss += loss.item() * inputs.size(0)
-                    running_corrects += (preds == labels).sum().item()
-                    total += labels.size(0)
 
-            # statistics of the epoch
-            epoch_loss = running_loss / total
-            epoch_acc = running_corrects / total
-            print("{} Loss: {:.4f} Acc: {:.4f}".format(phase, epoch_loss, epoch_acc))
-            print(datetime.datetime.now())
+                            else:
+                                with autocast(dtype=torch.bfloat16):  # Sets autocast in the main thread. It handles mixed precision in the forward pass.
+                                    # optimizer.zero_grad()
+                                    outputs = model(inputs)
+                                    loss = criterion(outputs, labels)
+                                    # loss.cuda()
 
-            # log statistics of the epoch
-            # wandb.log(
-            #     {"accuracy" + "_" + phase: epoch_acc, "loss" + "_" + phase: epoch_loss},
-            #     step=epoch + 1,
-            # )
+                                if phase == "train":
+                                    # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
+                                    scaler.scale(loss).backward()
+                                    # scaler.step() first unscales the gradients of the optimizer's assigned params.
+                                    scaler.step(optimizer)
+                                    # Updates the scale for next iteration.
+                                    scaler.update()
+                                    
 
-            # If better validation accuracy, replace best weights and compute the test performance
-            if phase == "validation" and epoch_acc >= best_acc:
+                                    # Update lr_scheduler
+                                    if scheduler_step_at == "step":
+                                        lr_scheduler.step()
+                                        # print("step")
 
-                # Updates to the weights will not happen if the accuracy is equal but loss does not diminish
-                if (epoch_acc == best_acc) and (epoch_loss > best_loss):
-                    pass
-                else:
-                    best_acc = epoch_acc
-                    best_loss = epoch_loss
+                            _, preds = torch.max(outputs, 1)
+                            tepoch.set_postfix(loss=loss.detach().item())
 
-                    best_model_wts = copy.deepcopy(model.state_dict())
+                        # print_memory_usage()
+                        # torch.cuda.empty_cache()
+                        # statistics
+                        running_loss += loss.detach().item() * inputs.size(0)
+                        running_corrects += (preds == labels).sum().detach().item()
+                        total += labels.size(0)
+                        # gc.collect()
 
-                    # Log best results so far and the weights of the model.
-                    # wandb.run.summary["best_val_accuracy"] = best_acc
-                    # wandb.run.summary["best_val_loss"] = best_loss
+                # statistics of the epoch
+                epoch_loss = running_loss / total
+                epoch_acc = running_corrects / total
+                print("{} Loss: {:.4f} Acc: {:.4f}".format(phase, epoch_loss, epoch_acc))
+                print(datetime.datetime.now())
+                writer.add_scalar("Loss/{}".format(phase), epoch_loss, epoch + 1)
+                writer.add_scalar("Accuracy/{}".format(phase), epoch_acc, epoch + 1)
+                
+                # log statistics of the epoch
+                # wandb.log(
+                #     {"accuracy" + "_" + phase: epoch_acc, "loss" + "_" + phase: epoch_loss},
+                #     step=epoch + 1,
+                # )
 
-                    # Clean CUDA Memory
-                    del inputs, outputs, labels
-                    torch.cuda.empty_cache()
-                    # Perform test and log results
-                    if config.dataset in ["PCam"]:
-                        test_acc, _, _ = tester.test(model, dataloaders["test"], config)
+                # If better validation accuracy, replace best weights and compute the test performance
+                if phase == "validation" and epoch_acc >= best_acc:
+
+                    # Updates to the weights will not happen if the accuracy is equal but loss does not diminish
+                    if (epoch_acc == best_acc) and (epoch_loss > best_loss):
+                        pass
                     else:
-                        test_acc = best_acc
-                    # wandb.run.summary["best_test_accuracy"] = test_acc
-                    # wandb.log({"accuracy_test": test_acc}, step=epoch + 1)
+                        best_acc = epoch_acc
+                        best_loss = epoch_loss
+
+                        best_model_wts = copy.deepcopy(model.state_dict())
+                        torch.save({
+                                    'epoch': epoch,
+                                    'model_state_dict': model.state_dict(),
+                                    'optimizer_state_dict': optimizer.state_dict(),
+                                    'loss': epoch_loss,
+                                    }, "checkpoints/"+config.model+"_checkpoint_"+str(epoch))
+
+                        # Log best results so far and the weights of the model.
+                        # wandb.run.summary["best_val_accuracy"] = best_acc
+                        # wandb.run.summary["best_val_loss"] = best_loss
+
+                        # Clean CUDA Memory
+                        del inputs, outputs, labels
+                        torch.cuda.empty_cache()
+                        # Perform test and log results
+                        if config.dataset in ["PCam"]:
+                            test_acc, _, _ = tester.test(model, dataloaders["test"], config)
+                        else:
+                            test_acc = best_acc
+                        # wandb.run.summary["best_test_accuracy"] = test_acc
+                        # wandb.log({"accuracy_test": test_acc}, step=epoch + 1)
 
         # Update scheduler
         if scheduler_step_at == "epoch":
@@ -173,7 +188,7 @@ def train(model, dataloaders, config):
     model.load_state_dict(best_model_wts)
 
     # save model and log it
-    torch.save(model.state_dict(), config.path)
+    torch.save(model.state_dict(), config.path+"_"+config.dataset+"_"+config.model)
     # torch.save(model.state_dict(), os.path.join(wandb.run.dir, "model.pt"))
     # torch.save(
     #     model.module.state_dict(),
