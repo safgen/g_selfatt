@@ -2,17 +2,40 @@ from model import get_model
 from config import get_config
 import dataset
 import trainer
-# import tester
+import sys
+#import tester
+import argparse
 import torch
 import datetime
 from torchinfo import summary
 from timm import create_model, list_models
 from pprint import pprint
+import importlib
+
 
 torch.backends.cuda.matmul.allow_tf32 = True
 
 
-config = get_config()
+def import_path(path, name="cfg"):
+    # if name is None:
+    #     name = Path(path).stem
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+parser = argparse.ArgumentParser(description="PyTorch Config Loader")
+parser.add_argument('--config', type=str, required=True, help='Path to the config file')
+args = parser.parse_args()
+config_file = args.config
+
+cfg = import_path(config_file)
+cfg_str = config_file.split(".")[0]
+# print(cfg_str)
+
+config = cfg.get_config()
 
 # model = get_model(config)
 
