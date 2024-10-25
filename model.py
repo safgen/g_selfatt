@@ -58,7 +58,7 @@ def get_model(config):
                 group=group,
                 in_channels=in_channels,
                 num_channels=24,
-                block_sizes=[2, 2],
+                block_sizes=[2, 3],
                 expansion_per_block=1,
                 crop_per_layer=0, #[2, 0, 2, 1, 1],
                 image_size=image_size,

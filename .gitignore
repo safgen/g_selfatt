@@ -9,4 +9,7 @@ __pycache__
 .pytype
 data/*
 !data/.gitkeep
-
+runs/*
+checkpoints/*
+weights*
+*old.md

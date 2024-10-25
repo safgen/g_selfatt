@@ -48,8 +48,11 @@ dataloaders = dataset.get_dataset(config, num_workers=2)
 if config.pretrained:
     # Load model state dict
     # model.module.load_state_dict(torch.load(config.path), weights_only=True)
-    model.load_state_dict(torch.load(config.path+"_"+config.dataset+"_"+config.model, weights_only=True))
-    print("model_loaded-----"*5)
+    try:
+        model.load_state_dict(torch.load(config.path+"_"+config.dataset+"_"+config.model, weights_only=True))
+        print("model_loaded-----"*5)
+    except:
+        print("model not found.... procedding without pretrain ")
 
 # Train the model
 if config.train:

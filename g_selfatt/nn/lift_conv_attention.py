@@ -208,7 +208,7 @@ class LiftConvAttention(torch.nn.Module):
             self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=self.mid_channels)
             self.attention = ConvAttention(group=self.group, dim_in=self.mid_channels, dim_out=self.dim_out, num_heads=self.num_heads, attn_drop=attention_dropout_rate)
         else:
-            self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=out_channels, patch_size=3)
+            self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=out_channels, patch_size=3, stride=2)
             self.attention = ConvAttention(group=self.group, dim_in=self.in_channels, dim_out=self.dim_out, num_heads=self.num_heads, attn_drop=attention_dropout_rate)
         # self.row_embedding = torch.nn.Sequential(
         #     torch.nn.Conv2d(in_channels=1, out_channels=16, kernel_size=1),
