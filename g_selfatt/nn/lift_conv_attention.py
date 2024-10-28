@@ -205,7 +205,7 @@ class LiftConvAttention(torch.nn.Module):
 
         # Define embeddings.
         if self.conv_embed_layer:
-            self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=self.mid_channels)
+            self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=out_channels)
             self.attention = ConvAttention(group=self.group, dim_in=self.mid_channels, dim_out=self.dim_out, num_heads=self.num_heads, attn_drop=attention_dropout_rate)
         else:
             self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=out_channels, patch_size=3, stride=2)
