@@ -144,6 +144,7 @@ class GroupTransformer(nn.Module):
             num_channels,
             num_heads,
             max_pos_embedding,
+            patch_size,
             attention_dropout_rate,
             conv_embed_layer=conv_embed_layer,
 
