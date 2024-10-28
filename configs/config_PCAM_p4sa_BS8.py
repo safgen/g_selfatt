@@ -30,7 +30,7 @@ def get_config():
         # The type of self-attention to be used in the network, e.g., Local, Global.
         activation_function="GELU",
         # The activation function used in the network. e.g., ReLU, Swish.
-        patch_size=7,
+        patch_size=5,
         # If attention_type == Local, the extension of the receptive field on which self-attention is calculated.
         dropout_att=0.1,
         # Specifies a layer-wise dropout factor applied on the computed attention coefficients, e.g., 0.1.

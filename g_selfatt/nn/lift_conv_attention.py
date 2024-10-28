@@ -173,7 +173,7 @@ class LiftConvAttention(torch.nn.Module):
         out_channels: int,
         num_heads: int,
         max_pos_embedding: int,
-        #patch_size: int,
+        patch_size: int,
         attention_dropout_rate: float,
         conv_embed_layer: bool = False,
     ):
@@ -205,7 +205,7 @@ class LiftConvAttention(torch.nn.Module):
 
         # Define embeddings.
         if self.conv_embed_layer:
-            self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=out_channels)
+            self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=out_channels, patch_size=patch_size, stride=(patch_size//2) + 1)
             self.attention = ConvAttention(group=self.group, dim_in=self.mid_channels, dim_out=self.dim_out, num_heads=self.num_heads, attn_drop=attention_dropout_rate)
         else:
             self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=out_channels, patch_size=3, stride=2)
