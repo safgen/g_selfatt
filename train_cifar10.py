@@ -48,17 +48,17 @@ model = get_model(config).to(config.device)
 # print(list_models("*vit*"))
 # exit()
 # print(torch.device(config.device))
-summary(model=model,
-        input_size=(config.batch_size, 1, 28, 28), # (batch_size, input_channels, img_width, img_height)
-        col_names=["input_size", "output_size", "num_params", "trainable",   #"params_percent",
-                "kernel_size",
-                "mult_adds"],
-        col_width=20,
-        row_settings=["var_names"],
-        depth = 6,
-        mode= 'train',
-        device=torch.device(config.device)
-        )
+# summary(model=model,
+#         input_size=(config.batch_size, 1, 28, 28), # (batch_size, input_channels, img_width, img_height)
+#         col_names=["input_size", "output_size", "num_params", "trainable",   #"params_percent",
+#                 "kernel_size",
+#                 "mult_adds"],
+#         col_width=20,
+#         row_settings=["var_names"],
+#         depth = 6,
+#         mode= 'train',
+#         device=torch.device(config.device)
+#         )
 
 # pprint(model)
 # exit()

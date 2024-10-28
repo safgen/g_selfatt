@@ -140,6 +140,7 @@ def get_model(config):
                 attention_dropout_rate=config.dropout_att,
                 value_dropout_rate=config.dropout_values,
                 whitening_scale=config.whitening_scale,
+                conv_embed_layer = True,
             )
 
     # Check if multi-GPU available and if so, use the available GPU's
