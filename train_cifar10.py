@@ -11,7 +11,7 @@ from torchinfo import summary
 from timm import create_model, list_models
 from pprint import pprint
 import importlib
-
+import os
 
 torch.backends.cuda.matmul.allow_tf32 = True
 
@@ -26,11 +26,14 @@ def import_path(path, name="cfg"):
     return module
 
 
+
 parser = argparse.ArgumentParser(description="PyTorch Config Loader")
 parser.add_argument('--config', type=str, required=True, help='Path to the config file')
+parser.add_argument('--checkpoint', type=str, required=False, help='Path to the checkpoint file', default='checkpoints/checkpoint')
 args = parser.parse_args()
 config_file = args.config
-
+checkpoint_file = args.checkpoint if args.checkpoint else "checkpt"
+print(checkpoint_file)
 cfg = import_path(config_file)
 cfg_str = config_file.split(".")[0]
 # print(cfg_str)
@@ -49,7 +52,7 @@ model = get_model(config).to(config.device)
 # exit()
 # print(torch.device(config.device))
 # summary(model=model,
-#         input_size=(config.batch_size, 1, 28, 28), # (batch_size, input_channels, img_width, img_height)
+#         input_size=(config.batch_size, 3, 96, 96), # (batch_size, input_channels, img_width, img_height)
 #         col_names=["input_size", "output_size", "num_params", "trainable",   #"params_percent",
 #                 "kernel_size",
 #                 "mult_adds"],
@@ -76,6 +79,13 @@ if config.pretrained:
         print("model_loaded-----"*5)
     except:
         print("model not found.... procedding without pretrain ")
+
+
+if os.path.exists(checkpoint_file):
+    checkpoint = torch.load(checkpoint_file)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    print("checkpoints_loaded -------------------------------------------------------------------------------------")
 
 # Train the model
 if config.train:
