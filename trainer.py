@@ -7,11 +7,12 @@ import torch
 import wandb
 from torch.cuda.amp import GradScaler, autocast
 from torch.optim.lr_scheduler import LambdaLR
+from torch.utils.tensorboard import SummaryWriter
 
 import tester
 from g_selfatt import utils
 import gc
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 # from datetime import datetime
 
 # writer = SummaryWriter()
@@ -62,7 +63,7 @@ def train(model, dataloaders, config):
 
         # Each epoch consist of training and validation
         for phase in ["train", "validation"]:
-            if  phase == "train" or (epoch+1)%10 == 0:
+            if  phase == "train" or (epoch+1)%1 == 0:
                 train = phase == "train"
                 if train:
                     model.train()
