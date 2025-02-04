@@ -205,10 +205,10 @@ class LiftConvAttention(torch.nn.Module):
 
         # Define embeddings.
         if self.conv_embed_layer:
-            self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=out_channels, patch_size=patch_size, stride=(patch_size//2) + 1)
+            self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=self.mid_channels, patch_size=patch_size, stride=(patch_size//2) + 1)
             self.attention = ConvAttention(group=self.group, dim_in=self.mid_channels, dim_out=self.dim_out, num_heads=self.num_heads, attn_drop=attention_dropout_rate)
         else:
-            self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=out_channels, patch_size=3, stride=2)
+            # self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=out_channels, patch_size=3, stride=2)
             self.attention = ConvAttention(group=self.group, dim_in=self.in_channels, dim_out=self.dim_out, num_heads=self.num_heads, attn_drop=attention_dropout_rate)
         # self.row_embedding = torch.nn.Sequential(
         #     torch.nn.Conv2d(in_channels=1, out_channels=16, kernel_size=1),
@@ -247,7 +247,8 @@ class LiftConvAttention(torch.nn.Module):
 
         b, c, w, h = x.shape
 
-        out = x.unsqueeze(2).repeat(1,1,self.group.num_elements,1,1) #self.attention(x, h, w)
+        # out = x.unsqueeze(2).repeat(1,1,self.group.num_elements,1,1) 
+        out = self.attention(x, h, w)
 
         # # Compute attention scores.
         # att_scores = self.compute_attention_scores(x)

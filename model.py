@@ -124,7 +124,7 @@ def get_model(config):
             model = models.GroupTransformer(
                 group=group,
                 in_channels=in_channels,
-                num_channels=14,
+                num_channels=16,
                 block_sizes=[0, 1, 2, 1],
                 expansion_per_block=[1, 2, 2, 2],
                 crop_per_layer=0, #[0, 2, 1, 1],

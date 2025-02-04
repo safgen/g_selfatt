@@ -158,6 +158,7 @@ class GroupTransformer(nn.Module):
             expansion = next(expansion_per_block_iterator)
 
             for layer_in_block in range(block_size):
+                print(layer_in_block, block_size, expansion, block_idx, block_sizes)
                 if layer_in_block == 0:
                     out_channels = expansion * in_channels
 

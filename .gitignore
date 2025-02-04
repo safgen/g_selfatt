@@ -13,3 +13,8 @@ runs/*
 checkpoints/*
 weights*
 *old.md
+*.gz
+*_batch*
+*ubyte
+*.html
+pics/
