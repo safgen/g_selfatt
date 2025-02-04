@@ -10,6 +10,10 @@ def get_model(config):
     # Define number of channels
     in_channels = 1 if "mnist" in config.dataset.lower() else 3
     num_classes = 2 if "pcam" in config.dataset.lower() else 10
+    if "imagenet" in config.dataset.lower():
+        num_classes = 3 #1000
+        if "tiny" in config.dataset.lower():
+            num_classes = 200
 
     # Define the input size
     if "mnist" in config.dataset.lower():
@@ -17,7 +21,9 @@ def get_model(config):
     elif "pcam" in config.dataset.lower():
         image_size = 96
     elif "imagenet" in config.dataset.lower():
-        image_size = 64
+        image_size = 224
+        if "tiny" in config.dataset.lower():
+            image_size = 64
     else:
         image_size = 32
     # And the patch_size, if Local
@@ -51,17 +57,17 @@ def get_model(config):
             model = models.GroupTransformer(
                 group=group,
                 in_channels=in_channels,
-                num_channels=20,
+                num_channels=24,
                 block_sizes=[2, 3],
                 expansion_per_block=1,
-                crop_per_layer=[2, 0, 2, 1, 1],
+                crop_per_layer=0, #[2, 0, 2, 1, 1],
                 image_size=image_size,
                 num_classes=num_classes,
-                dropout_rate_after_maxpooling=0.0,
+                dropout_rate_after_maxpooling=0.2,
                 maxpool_after_last_block=False,
                 normalize_between_layers=False,
                 patch_size=patch_size,
-                num_heads=9,
+                num_heads=6,
                 norm_type=config.norm_type,
                 activation_function=config.activation_function,
                 attention_dropout_rate=config.dropout_att,
@@ -82,7 +88,7 @@ def get_model(config):
                 maxpool_after_last_block=False,
                 normalize_between_layers=True,
                 patch_size=patch_size,
-                num_heads=9,
+                num_heads=8,
                 norm_type=config.norm_type,
                 activation_function=config.activation_function,
                 attention_dropout_rate=config.dropout_att,
@@ -90,36 +96,38 @@ def get_model(config):
                 input_dropout_rate=0.2,
                 whitening_scale=config.whitening_scale,
             )
-        elif config.dataset == "imagenet":
+        elif config.dataset == "imagenet" or config.dataset == "imagenet-tiny":
             model = models.GroupTransformer(
                 group=group,
                 in_channels=in_channels,
-                num_channels=96,
+                num_channels=64,
                 block_sizes=[2, 2, 2],
                 expansion_per_block=[1, 2, 1],
                 crop_per_layer=0,
                 image_size=image_size,
-                num_classes=200,
+                num_classes=num_classes,
                 dropout_rate_after_maxpooling=0.3,
                 maxpool_after_last_block=False,
                 normalize_between_layers=True,
                 patch_size=patch_size,
-                num_heads=9,
+                num_heads=6,
                 norm_type=config.norm_type,
                 activation_function=config.activation_function,
                 attention_dropout_rate=config.dropout_att,
                 value_dropout_rate=config.dropout_values,
                 input_dropout_rate=0.2,
                 whitening_scale=config.whitening_scale,
+                conv_embed_layer = True,
+
             )
         elif config.dataset == "PCam":
             model = models.GroupTransformer(
                 group=group,
                 in_channels=in_channels,
-                num_channels=12,
+                num_channels=16,
                 block_sizes=[0, 1, 2, 1],
                 expansion_per_block=[1, 2, 2, 2],
-                crop_per_layer=[0, 2, 1, 1],
+                crop_per_layer=0, #[0, 2, 1, 1],
                 image_size=image_size,
                 num_classes=num_classes,
                 dropout_rate_after_maxpooling=0.0,
@@ -132,6 +140,7 @@ def get_model(config):
                 attention_dropout_rate=config.dropout_att,
                 value_dropout_rate=config.dropout_values,
                 whitening_scale=config.whitening_scale,
+                conv_embed_layer = True,
             )
 
     # Check if multi-GPU available and if so, use the available GPU's

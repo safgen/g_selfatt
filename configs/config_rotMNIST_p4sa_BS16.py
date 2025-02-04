@@ -7,7 +7,7 @@ def get_config():
         # General parameters
         dataset="rotMNIST",
         # The dataset to be used, e.g., MNIST.
-        model="p8sa",
+        model="p4sa",
         # The model to be used, e.g., p4sa.
         optimizer="AdamW",
         # The optimizer to be used, e.g., Adam.
@@ -42,7 +42,7 @@ def get_config():
         # Specifies a L2 norm over the magnitude of the weigths in the network, e.g., 1e-4.
         batch_size=16,
         # The batch size to be used, e.g., 64.
-        epochs=200,
+        epochs=100,
         # The number of epochs to perform training, e.g., 200.
         seed=0,
         # The seed of the run. e.g., 0.

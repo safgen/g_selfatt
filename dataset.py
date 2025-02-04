@@ -4,11 +4,13 @@ import ml_collections
 import torch
 import torchvision
 
+from torch.utils.data import Subset
+
 from datasets import MNIST_rot, PCam
 
 
 def get_dataset(
-    config: ml_collections.ConfigDict, num_workers: int = 32, data_root: str = "./data"
+    config: ml_collections.ConfigDict, num_workers: int = 8, data_root: str = "./data"
 ) -> Dict[str, torch.utils.data.DataLoader]:
     """
     Create dataloaders for the chosen datasets
@@ -20,6 +22,7 @@ def get_dataset(
         "rotmnist": MNIST_rot,
         "pcam": PCam,
         "imagenet" : torchvision.datasets.ImageFolder,
+        "imagenet-tiny" : torchvision.datasets.ImageFolder,
     }[config["dataset"].lower()]
     print(dataset)
     if "cifar" in config.dataset.lower():
@@ -42,13 +45,26 @@ def get_dataset(
                 ]
             )
     elif "imagenet" in config.dataset.lower():
-        train_path = '/home/sheir/tiny-imagenet-200/train'
-        val_path = '/home/sheir/tiny-imagenet-200/val'
-        transform = torchvision.transforms.Compose(
+        if "tiny" in config.dataset.lower():
+            train_path = '/home/sheir/tiny-imagenet-200/train'
+            val_path = '/home/sheir/tiny-imagenet-200/val'
+            transform = torchvision.transforms.Compose(
                 [   
                     torchvision.transforms.Resize((64,64)),
-                    torchvision.transforms.RandomHorizontalFlip(),
-                    torchvision.transforms.ToTensor()
+                    # torchvision.transforms.RandomHorizontalFlip(),
+                    torchvision.transforms.ToTensor(),
+                    torchvision.transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262])
+                ]
+            )
+        else:
+            train_path = '/home/sheir/EasyImageNet/train'
+            val_path = '/home/sheir/EasyImageNet/val'
+            transform = torchvision.transforms.Compose(
+                [   
+                    torchvision.transforms.Resize((224,224)),
+                    # torchvision.transforms.RandomHorizontalFlip(),
+                    torchvision.transforms.ToTensor(),
+                    torchvision.transforms.Normalize([0.4802, 0.4481, 0.3975], [0.2302, 0.2265, 0.2262])
                 ]
         )
         
@@ -75,6 +91,13 @@ def get_dataset(
 
     if "imagenet" in config.dataset.lower():
         train_data = torchvision.datasets.ImageFolder(train_path, transform=transform)
+        # print(train_data.class_to_idx)
+        # print(train_data.imgs)
+        mask = torch.tensor(train_data.targets) < 3
+        train_indices = mask.nonzero().reshape(-1)
+        # print(train_data.class_to_idx)
+        train_data = Subset(train_data, train_indices)
+        
         train_loader = torch.utils.data.DataLoader(
             train_data,
             batch_size=config.batch_size,
@@ -82,6 +105,12 @@ def get_dataset(
             num_workers=0
         )
         val_data = torchvision.datasets.ImageFolder(val_path, transform=transform)
+        # mask = torch.tensor(val_data.targets) < 3
+        # val_indices = mask.nonzero().reshape(-1)
+        # # print(val_data.class_to_idx)
+        # val_data = Subset(val_data, val_indices)
+        
+
         val_loader = torch.utils.data.DataLoader(
             val_data,
             batch_size=config.batch_size,
@@ -89,7 +118,8 @@ def get_dataset(
             num_workers=0
         )
 
-        dataloaders = {"train": train_loader, "test": val_loader}
+
+        dataloaders = {"train": train_loader, "validation": val_loader}
         return dataloaders
     
     transform_test = torchvision.transforms.Compose(
@@ -109,6 +139,8 @@ def get_dataset(
         shuffle=True,
         num_workers=num_workers,
     )
+    # subset_indices = torch.randperm(len(test_set))[:5000]
+    # test_set = Subset(test_set, subset_indices)
     test_loader = torch.utils.data.DataLoader(
         test_set,
         batch_size=config.batch_size,

@@ -5,9 +5,9 @@ def get_config():
     default_config = dict(
         # --------------------------
         # General parameters
-        dataset="rotMNIST",
+        dataset="PCam",
         # The dataset to be used, e.g., MNIST.
-        model="p8sa",
+        model="p4sa",
         # The model to be used, e.g., p4sa.
         optimizer="AdamW",
         # The optimizer to be used, e.g., Adam.
@@ -30,7 +30,7 @@ def get_config():
         # The type of self-attention to be used in the network, e.g., Local, Global.
         activation_function="GELU",
         # The activation function used in the network. e.g., ReLU, Swish.
-        patch_size=7,
+        patch_size=5,
         # If attention_type == Local, the extension of the receptive field on which self-attention is calculated.
         dropout_att=0.1,
         # Specifies a layer-wise dropout factor applied on the computed attention coefficients, e.g., 0.1.
@@ -40,9 +40,9 @@ def get_config():
         # Specifies a factor with which the current variance initialization is weighted.
         weight_decay=1e-5,
         # Specifies a L2 norm over the magnitude of the weigths in the network, e.g., 1e-4.
-        batch_size=16,
+        batch_size=32,
         # The batch size to be used, e.g., 64.
-        epochs=200,
+        epochs=100,
         # The number of epochs to perform training, e.g., 200.
         seed=0,
         # The seed of the run. e.g., 0.
