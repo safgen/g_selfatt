@@ -69,6 +69,14 @@ class LiftLocalSelfAttention(torch.nn.Module):
         self.key = nn.Conv2d(in_channels, mid_channels * num_heads, kernel_size=1)
         self.value = nn.Conv2d(in_channels, mid_channels * num_heads, kernel_size=1)
         self.wout = nn.Conv3d(mid_channels * num_heads, out_channels, kernel_size=1)
+        
+        # 2D approach
+        self.wout2d = nn.Conv2d(mid_channels * num_heads * self.group.num_elements, out_channels * self.group.num_elements, kernel_size=1)
+
+        # unstack appoach
+        # self.unstack = torch.unbind()
+        self.conv_stack = nn.Conv2d(mid_channels * num_heads, out_channels, kernel_size=1)
+        # self.stack = torch.stack()
 
         # Patch extractor.
         self.unfold = nn.Unfold(
@@ -104,12 +112,20 @@ class LiftLocalSelfAttention(torch.nn.Module):
 
         # Re-weight values via attention and map to output dimension.
         v = torch.einsum("bhgijkl,bchklij->bchgij", att_probs, v)
-        out = self.wout(
-            v.contiguous().view(
-                b, self.mid_channels * self.num_heads, self.group.num_elements, w, h
-            )
-        )
+        # out = self.wout(
+        #     v.contiguous().view(
+        #         b, self.mid_channels * self.num_heads, self.group.num_elements, w, h
+        #     )
+        # ) # .view(b, -1, self.group.num_elements, w, h)
 
+        # unstack approach
+        outs = torch.unbind(v.contiguous().view(
+                b, self.mid_channels * self.num_heads, self.group.num_elements, w, h
+            ), 2)
+        outs = [self.conv_stack(o) for o in outs]
+
+        out = torch.stack(tuple(outs), 2)
+        
         return out
 
     def compute_attention_scores(

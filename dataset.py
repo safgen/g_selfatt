@@ -102,7 +102,7 @@ def get_dataset(
             train_data,
             batch_size=config.batch_size,
             shuffle=True,
-            num_workers=0
+            num_workers=8
         )
         val_data = torchvision.datasets.ImageFolder(val_path, transform=transform)
         # mask = torch.tensor(val_data.targets) < 3
@@ -115,7 +115,7 @@ def get_dataset(
             val_data,
             batch_size=config.batch_size,
             shuffle=False,
-            num_workers=0
+            num_workers=8
         )
 
 
