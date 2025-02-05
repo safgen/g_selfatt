@@ -242,8 +242,8 @@ class LiftConvAttention(torch.nn.Module):
         x: torch.Tensor,
     ) -> torch.Tensor:
 
-        # if self.conv_embed_layer:
-        x = self.conv_embed(x)
+        if self.conv_embed_layer:
+            x = self.conv_embed(x)
 
         b, c, w, h = x.shape
 
