@@ -45,8 +45,9 @@ class PatchEmbedding(nn.Module):
         x = self.conv(x)
         print(x.shape)
         # Convert back to torch.Tensor and flatten the patches
-        # x = x.tensor
-        # x = x.view(B, self.embed_dim, -1)
+        x = x.tensor
+        print(x.shape)
+        x = x.view(B, self.embed_dim, -1)
         x = self.flatten(x)
         return x
 

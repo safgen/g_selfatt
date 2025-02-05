@@ -97,6 +97,10 @@ class TransformerBlock(nn.Module):
 
     def forward(self, x):
         # Crop then sum consumes less memory.
+        # print(x.shape)
         out = self.crop(self.attention(x)) + self.crop(self.shortcut(x))
+        # print(out.shape)
         out = self.mlp(out) + out
+        # print(out.shape)
+        # print(".................................................................................................")
         return out

@@ -16,6 +16,8 @@ from g_selfatt.nn import (
     LiftSelfAttention,
     TransformerBlock,
     activations,
+    LiftConvAttention,
+    GroupConvAttention
 )
 
 # mixed precision
@@ -26,6 +28,9 @@ except ModuleNotFoundError:
     def autocast():
         return lambda f: f
 
+def print_memory_usage():
+    print(f"Allocated: {torch.cuda.memory_allocated() / 1024**2:.2f} MB")
+    print(f"Cached: {torch.cuda.memory_reserved() / 1024**2:.2f} MB")
 
 class NormType(str, enum.Enum):
     BATCH_NORM = "BatchNorm"
@@ -61,6 +66,8 @@ class GroupTransformer(nn.Module):
         input_dropout_rate: float = 0.0,
         num_classes: int = 10,
         whitening_scale: float = 1.41421356,
+        conv_embed_layer: bool = False,
+
     ):
         super().__init__()
 
@@ -82,8 +89,8 @@ class GroupTransformer(nn.Module):
             )
 
         if use_local_attention:
-            LiftingSA = LiftLocalSelfAttention
-            self.GroupSA = GroupLocalSelfAttention
+            LiftingSA = LiftConvAttention #LiftLocalSelfAttention 
+            self.GroupSA = GroupConvAttention #GroupLocalSelfAttention
         else:
             LiftingSA = LiftSelfAttention
             self.GroupSA = GroupSelfAttention
@@ -119,14 +126,14 @@ class GroupTransformer(nn.Module):
 
         self.input_dropout = nn.Dropout(input_dropout_rate)
 
-        patch_dim = 3 * 16 * 16
-        dim = 196
-        self.to_patch_embedding = nn.Sequential(
-            Rearrange('b c (h p1) (w p2) -> b (h w c) p1 p2', p1 = 16, p2 = 16),
-            # nn.LayerNorm(patch_dim),
-            # nn.Linear(patch_dim, dim),
-            # nn.LayerNorm(dim),
-        )
+        # patch_dim = 3 * 16 * 16
+        # dim = 196
+        # self.to_patch_embedding = nn.Sequential(
+        #     Rearrange('b c (h p1) (w p2) -> b (h w c) p1 p2', p1 = 16, p2 = 16),
+        #     # nn.LayerNorm(patch_dim),
+        #     # nn.Linear(patch_dim, dim),
+        #     # nn.LayerNorm(dim),
+        # )
 
         # Lifting layer
         max_pos_embedding = patch_size if use_local_attention else image_size
@@ -137,7 +144,10 @@ class GroupTransformer(nn.Module):
             num_channels,
             num_heads,
             max_pos_embedding,
+            patch_size,
             attention_dropout_rate,
+            conv_embed_layer=conv_embed_layer,
+
         )
         self.lifting_normalization = self.Norm(num_channels)
         in_channels = num_channels
@@ -148,6 +158,7 @@ class GroupTransformer(nn.Module):
             expansion = next(expansion_per_block_iterator)
 
             for layer_in_block in range(block_size):
+                print(layer_in_block, block_size, expansion, block_idx, block_sizes)
                 if layer_in_block == 0:
                     out_channels = expansion * in_channels
 
@@ -191,10 +202,14 @@ class GroupTransformer(nn.Module):
         # print(x.shape)
         out = self.input_dropout(x)
         out = self.lifting_self_attention(out)
+        # print_memory_usage()
+        # print(out.shape)
         out = self.lifting_normalization(out)
+        # print(x.shape)
         out = self.Activation()(out)
         # return torch.rand((1,1000))
         out = self.transformer(out)
+        # print_memory_usage()
         return out.sum(dim=(-2, -1)).max(-1).values.view(batch_size, self.num_classes)
 
     def transformer_layer(self, *, max_pos_embedding, crop_size, in_channels, out_channels):
