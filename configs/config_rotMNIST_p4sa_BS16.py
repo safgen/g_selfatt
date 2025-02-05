@@ -57,6 +57,7 @@ def get_config():
         path="weights",
         # This parameter is automatically derived from the other parameters of the run. It specifies
         # the path where the network parameters will be saved / loaded from.
+        val_steps=10,
     )
     default_config = ml_collections.ConfigDict(default_config)
     return default_config

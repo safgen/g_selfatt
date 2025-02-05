@@ -42,6 +42,7 @@ def train(model, dataloaders, config):
 
     device = config.device
     epochs = config.epochs
+    val_steps = config.val_steps if config.val_steps else 1
 
     # Creates a GradScaler once at the beginning of training. Scaler handles mixed-precision on backward pass.
     scaler = GradScaler()
@@ -63,7 +64,7 @@ def train(model, dataloaders, config):
 
         # Each epoch consist of training and validation
         for phase in ["train", "validation"]:
-            if  phase == "train" or (epoch+1)%1 == 0:
+            if  phase == "train" or (epoch+1)% val_steps == 0:
                 train = phase == "train"
                 if train:
                     model.train()
