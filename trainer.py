@@ -42,7 +42,7 @@ def train(model, dataloaders, config):
 
     device = config.device
     epochs = config.epochs
-    val_steps = config.val_steps if config.val_steps else 1
+    val_steps = config.val_steps if "val_steps" in config.keys() else 1
 
     # Creates a GradScaler once at the beginning of training. Scaler handles mixed-precision on backward pass.
     scaler = GradScaler()
