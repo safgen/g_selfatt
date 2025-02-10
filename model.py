@@ -60,7 +60,7 @@ def get_model(config):
                 num_channels=24,
                 block_sizes=[2, 3],
                 expansion_per_block=1,
-                crop_per_layer=0, #[2, 0, 2, 1, 1],
+                crop_per_layer=[2, 0, 2, 1, 1],
                 image_size=image_size,
                 num_classes=num_classes,
                 dropout_rate_after_maxpooling=0.2,
