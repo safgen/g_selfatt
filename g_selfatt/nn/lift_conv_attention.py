@@ -151,7 +151,7 @@ class ConvAttention(nn.Module):
         k = rearrange(self.proj_k(k), 'b (h c) x y -> b c h x y', h=self.num_heads)
         v = rearrange(self.proj_v(v), 'b (h c) x y -> b c h x y', h=self.num_heads)
 
-        attn_score = (torch.einsum('bchij,bchkl->bhijkl', [q, k])).unsqueeze(2).repeat(1,1,self.group.num_elements,1,1,1,1) * self.scale      # TODO: replace the hardcoded  4 in repeat to the num of group elements
+        attn_score = (torch.einsum('bchij,bchkl->bhijkl', [q, k])).unsqueeze(2).repeat(1,1,self.group.num_elements,1,1,1,1) * self.scale    
         shape = attn_score.shape
         attn = F.softmax(attn_score.view(*shape[:-2], -1), dim=-1)
         attn = self.attn_drop(attn.view(shape))

@@ -25,9 +25,9 @@ class ConvAttention3D(nn.Module):
                  proj_drop=0.,
                  method='dw_bn',
                  kernel_size=3,
-                 stride_kv=2,
+                 stride_kv=(1,2,2),
                  stride_q=1,
-                 padding_kv=3,
+                 padding_kv=(1,3,3),
                  padding_q=1,
                  with_cls_token=False,
                  max_pos_embedding=0,
@@ -135,7 +135,7 @@ class ConvAttention3D(nn.Module):
             q = torch.cat((cls_token, q), dim=1)
             k = torch.cat((cls_token, k), dim=1)
             v = torch.cat((cls_token, v), dim=1)
-
+        
         return q, k, v
 
     def forward(self, x, h, w):
@@ -150,10 +150,11 @@ class ConvAttention3D(nn.Module):
             # v = rearrange(v, 'b (h c) g x y -> b c h g x y', h=self.num_heads)
         
         # else:
-
+        # print(q.shape, k.shape)
         q = rearrange(self.proj_q(q), 'b (h c) g x y -> b c h g x y', h=self.num_heads)
         k = rearrange(self.proj_k(k), 'b (h c) g x y -> b c h g x y', h=self.num_heads)
         v = rearrange(self.proj_v(v), 'b (h c) g x y -> b c h g x y', h=self.num_heads)
+        # print(q.shape, k.shape)
         q_group = q
         g_embedding = self.group_embedding(self.g_indices.view(-1)).view(self.g_indices.shape + (-1,))
         # print(q_group.shape, g_embedding.shape)
@@ -162,9 +163,9 @@ class ConvAttention3D(nn.Module):
             q_group,
             g_embedding,
         )
-        # print(g_scores.shape)
+        # print(g_scores.shape, q.shape, k.shape, v.shape)
         attn_c_score = (torch.einsum('bchgij,bchmkl->bhgijmkl', q, k)).unsqueeze(2) #.repeat(1,1,self.group.num_elements,1,1,1,1,1,1) * self.scale
-        # print(g_scores.shape, attn_c_score.shape)
+        # print("duh", g_scores.shape, attn_c_score.shape)
         attn_score = g_scores.unsqueeze(-1).unsqueeze(-1).repeat(1,1,1,1,1,1,1, attn_c_score.shape[-2], attn_c_score.shape[-1])
         # print(attn_score.shape, attn_c_score.shape)
 
@@ -301,7 +302,7 @@ class GroupConvAttention(nn.Module):
     ) -> torch.Tensor:
 
         b, c, g, w, h = x.shape
-
+        # print(x.shape)
         out = self.attention(x, h, w)
 
 
