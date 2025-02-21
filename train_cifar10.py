@@ -12,6 +12,9 @@ from timm import create_model, list_models
 from pprint import pprint
 import importlib
 import os
+from fvcore.nn import FlopCountAnalysis
+
+
 # from prettytable import PrettyTable
 
 # def count_parameters(model):
@@ -78,6 +81,12 @@ model = get_model(config).to(config.device)
 
 # pprint(model)
 # count_parameters(model)
+
+# rand_tensor = torch.randn(1, 1, 28, 28).to(config.device)
+# # Compute FLOPs
+# flop_analyzer = FlopCountAnalysis(model, rand_tensor)
+# flops = flop_analyzer.total()
+# print(flops/1024**3)
 # exit()
 # Define transforms and create dataloaders
 dataloaders = dataset.get_dataset(config, num_workers=2)

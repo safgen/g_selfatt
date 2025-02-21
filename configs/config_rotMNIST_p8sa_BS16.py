@@ -22,7 +22,7 @@ def get_config():
         # The scheduler should be decreased.
         sched_decay_factor=5.0,
         # The factor with which the lr will be reduced, e.g., 5, 10.
-        lr=0.0001,
+        lr=0.001,
         # The lr to be used, e.g., 0.001.
         norm_type="LayerNorm",
         # The normalization type to be used in the network, e.g., LayerNorm.
@@ -40,9 +40,9 @@ def get_config():
         # Specifies a factor with which the current variance initialization is weighted.
         weight_decay=1e-5,
         # Specifies a L2 norm over the magnitude of the weigths in the network, e.g., 1e-4.
-        batch_size=16,
+        batch_size=64,
         # The batch size to be used, e.g., 64.
-        epochs=80,
+        epochs=200,
         # The number of epochs to perform training, e.g., 200.
         seed=0,
         # The seed of the run. e.g., 0.

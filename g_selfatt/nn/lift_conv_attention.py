@@ -8,7 +8,7 @@ import g_selfatt.nn
 from g_selfatt.groups import Group
 from g_selfatt.nn.activations import Swish
 from g_selfatt.utils import normalize_tensor_one_minone
-from .conv_embed import ConvEmbed
+from .conv_embed import ConvEmbed, GroupEquivariantPatchEmbedding
 from collections import OrderedDict
 
 import torch.nn.functional as F
@@ -199,7 +199,7 @@ class LiftConvAttention(torch.nn.Module):
         self.num_heads = num_heads
         self.in_channels = in_channels
         self.mid_channels = mid_channels
-        # self.out_channels = out_channels
+        self.out_channels = out_channels
         self.dim_out = out_channels * self.num_heads
         self.conv_embed_layer = conv_embed_layer
 
@@ -209,7 +209,8 @@ class LiftConvAttention(torch.nn.Module):
             self.attention = ConvAttention(group=self.group, dim_in=self.mid_channels, dim_out=self.dim_out, num_heads=self.num_heads, attn_drop=attention_dropout_rate)
         else:
             # self.conv_embed = ConvEmbed(in_chans=self.in_channels, embed_dim=out_channels, patch_size=3, stride=2)
-            self.attention = ConvAttention(group=self.group, dim_in=self.in_channels, dim_out=self.dim_out, num_heads=self.num_heads, attn_drop=attention_dropout_rate)
+            self.attention = GroupEquivariantPatchEmbedding(in_channels=self.in_channels, embed_dim=out_channels, patch_size=patch_size, stride=(patch_size//2) + 1,rotations=self.group.num_elements )
+            # self.attention = ConvAttention(group=self.group, dim_in=self.in_channels, dim_out=self.dim_out, num_heads=self.num_heads, attn_drop=attention_dropout_rate)
         # self.row_embedding = torch.nn.Sequential(
         #     torch.nn.Conv2d(in_channels=1, out_channels=16, kernel_size=1),
         #     g_selfatt.nn.LayerNorm(num_channels=16),
@@ -245,10 +246,13 @@ class LiftConvAttention(torch.nn.Module):
         if self.conv_embed_layer:
             x = self.conv_embed(x)
 
-        b, c, w, h = x.shape
+            b, c, w, h = x.shape
 
-        # out = x.unsqueeze(2).repeat(1,1,self.group.num_elements,1,1) 
-        out = self.attention(x, h, w)
+            # out = x.unsqueeze(2).repeat(1,1,self.group.num_elements,1,1) 
+            out = self.attention(x, h, w)
+        else:
+            out = self.attention(x)
+            out = rearrange(out, 'b (c g) h w -> b c g h w', c=self.out_channels, g=self.group.num_elements)
 
         # # Compute attention scores.
         # att_scores = self.compute_attention_scores(x)

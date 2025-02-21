@@ -57,7 +57,7 @@ def get_model(config):
             model = models.GroupTransformer(
                 group=group,
                 in_channels=in_channels,
-                num_channels=12,
+                num_channels=28,
                 block_sizes=[2, 3],
                 expansion_per_block=1,
                 crop_per_layer=[2, 0, 2, 0, 0],
@@ -73,7 +73,7 @@ def get_model(config):
                 attention_dropout_rate=config.dropout_att,
                 value_dropout_rate=config.dropout_values,
                 whitening_scale=config.whitening_scale,
-                conv_embed_layer = True,
+                # conv_embed_layer = True,
             )
         elif config.dataset == "CIFAR10":
             model = models.GroupTransformer(
