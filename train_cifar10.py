@@ -13,21 +13,24 @@ from pprint import pprint
 import importlib
 import os
 from fvcore.nn import FlopCountAnalysis
+# import torch._dynamo
+
+# torch._dynamo.config.suppress_errors = True
 
 
-# from prettytable import PrettyTable
+from prettytable import PrettyTable
 
-# def count_parameters(model):
-#     table = PrettyTable(["Modules", "Parameters"])
-#     total_params = 0
-#     for name, parameter in model.named_parameters():
-#         if not parameter.requires_grad: continue
-#         params = parameter.numel()
-#         table.add_row([name, params])
-#         total_params+=params
-#     print(table)
-#     print(f"Total Trainable Params: {total_params}")
-#     return total_params
+def count_parameters(model):
+    table = PrettyTable(["Modules", "Parameters"])
+    total_params = 0
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad: continue
+        params = parameter.numel()
+        table.add_row([name, params])
+        total_params+=params
+    print(table)
+    print(f"Total Trainable Params: {total_params}")
+    return total_params
 
 torch.backends.cuda.matmul.allow_tf32 = True
 
@@ -63,12 +66,14 @@ config = cfg.get_config()
 #         "cuda:1" if (config.device == "cuda" and torch.cuda.is_available()) else "cpu"
 #     )
 model = get_model(config).to(config.device)
+# print(torch._dynamo.list_backends())
+# model = torch.compile(model, backend='cudagraphs')#, mode='reduce-overhead')
 # model = create_model('vit_tiny_patch16_224', pretrained=False)
 # print(list_models("*vit*"))
 # exit()
 # print(torch.device(config.device))
 # summary(model=model,
-#         input_size=(config.batch_size, 3, 96,96), # (batch_size, input_channels, img_width, img_height)
+#         input_size=(config.batch_size, 1, 28, 28), # (batch_size, input_channels, img_width, img_height)
 #         col_names=["input_size", "output_size", "num_params", "trainable",   #"params_percent",
 #                 "kernel_size",
 #                 "mult_adds"],
@@ -77,17 +82,17 @@ model = get_model(config).to(config.device)
 #         depth = 6,
 #         mode= 'train',
 #         device=torch.device(config.device)
-#         )
+        # )
 
 # pprint(model)
 # count_parameters(model)
 
-# rand_tensor = torch.randn(1, 1, 28, 28).to(config.device)
+# rand_tensor = torch.randn(4, 1, 28, 28).to(config.device)
 # # Compute FLOPs
 # flop_analyzer = FlopCountAnalysis(model, rand_tensor)
 # flops = flop_analyzer.total()
 # print(flops/1024**3)
-# exit()
+# # exit()
 # Define transforms and create dataloaders
 dataloaders = dataset.get_dataset(config, num_workers=2)
 

@@ -57,7 +57,7 @@ def get_model(config):
             model = models.GroupTransformer(
                 group=group,
                 in_channels=in_channels,
-                num_channels=28,
+                num_channels=12,
                 block_sizes=[2, 3],
                 expansion_per_block=1,
                 crop_per_layer=[2, 0, 2, 0, 0],
@@ -153,8 +153,8 @@ def get_model(config):
     torch.backends.cudnn.benchmark = True
 
     # print number parameters
-    # no_params = num_params(model)
-    # print("Number of parameters:", no_params)
+    no_params = num_params(model)
+    print("Number of parameters:", no_params)
     # wandb.run.summary["no_params"] = no_params
 
     return model
