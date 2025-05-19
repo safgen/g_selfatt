@@ -15,19 +15,19 @@ import os
 from fvcore.nn import FlopCountAnalysis
 
 
-# from prettytable import PrettyTable
+from prettytable import PrettyTable
 
-# def count_parameters(model):
-#     table = PrettyTable(["Modules", "Parameters"])
-#     total_params = 0
-#     for name, parameter in model.named_parameters():
-#         if not parameter.requires_grad: continue
-#         params = parameter.numel()
-#         table.add_row([name, params])
-#         total_params+=params
-#     print(table)
-#     print(f"Total Trainable Params: {total_params}")
-#     return total_params
+def count_parameters(model):
+    table = PrettyTable(["Modules", "Parameters"])
+    total_params = 0
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad: continue
+        params = parameter.numel()
+        table.add_row([name, params])
+        total_params+=params
+    print(table)
+    print(f"Total Trainable Params: {total_params}")
+    return total_params
 
 torch.backends.cuda.matmul.allow_tf32 = True
 
@@ -68,7 +68,7 @@ model = get_model(config).to(config.device)
 # exit()
 # print(torch.device(config.device))
 # summary(model=model,
-#         input_size=(config.batch_size, 3, 96,96), # (batch_size, input_channels, img_width, img_height)
+#         input_size=(config.batch_size, 1, 28, 28), # (batch_size, input_channels, img_width, img_height)
 #         col_names=["input_size", "output_size", "num_params", "trainable",   #"params_percent",
 #                 "kernel_size",
 #                 "mult_adds"],
@@ -79,7 +79,7 @@ model = get_model(config).to(config.device)
 #         device=torch.device(config.device)
 #         )
 
-# pprint(model)
+# # pprint(model)
 # count_parameters(model)
 
 # rand_tensor = torch.randn(1, 1, 28, 28).to(config.device)
