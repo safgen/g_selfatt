@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 import torch
 import wandb
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.tensorboard import SummaryWriter
 
@@ -45,7 +45,7 @@ def train(model, dataloaders, config):
     val_steps = config.val_steps if "val_steps" in config.keys() else 1
 
     # Creates a GradScaler once at the beginning of training. Scaler handles mixed-precision on backward pass.
-    scaler = GradScaler()
+    scaler = GradScaler('cuda')
     # Save best performing weights
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
@@ -103,7 +103,7 @@ def train(model, dataloaders, config):
 
 
                             else:
-                                with autocast(dtype=torch.bfloat16):  # Sets autocast in the main thread. It handles mixed precision in the forward pass.
+                                with autocast(device_type='cuda', dtype=torch.bfloat16):  # Sets autocast in the main thread. It handles mixed precision in the forward pass.
                                     # optimizer.zero_grad()
                                     outputs = model(inputs)
                                     loss = criterion(outputs, labels)

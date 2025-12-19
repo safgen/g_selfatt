@@ -54,10 +54,10 @@ def get_model(config):
 
         # Create model
         if config.dataset == "rotMNIST":
-            model = models.GroupTransformer(
+            model = models.ESGroupTransformer(
                 group=group,
                 in_channels=in_channels,
-                num_channels=14,
+                num_channels=28,
                 block_sizes=[2, 3],
                 expansion_per_block=1,
                 crop_per_layer=[2, 0, 2, 0, 0],

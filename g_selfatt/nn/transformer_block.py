@@ -74,12 +74,12 @@ class TransformerBlock(nn.Module):
 
         self.attention = nn.Sequential(
             #lifting,    
-            Norm(in_channels),
-            ActivationFunction(),
+            # Norm(in_channels),                # REIMPLEMENT THIS
+            # ActivationFunction(),               # REIMPLEMENT THIS
             attention_layer,
-            Norm(out_channels),
-            ActivationFunction(),
-            nn.Dropout(value_dropout_rate),
+            # Norm(out_channels),                 # REIMPLEMENT THIS
+            # ActivationFunction(),               # REIMPLEMENT THIS    
+            # nn.Dropout(value_dropout_rate),      # REIMPLEMENT THIS
         )
 
         self.mlp = nn.Sequential(
